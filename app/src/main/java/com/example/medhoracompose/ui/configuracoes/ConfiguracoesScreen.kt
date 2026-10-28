@@ -18,13 +18,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -34,9 +34,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
-import com.example.medhoracompose.data.repository.PreferenciasRepository
-import com.example.medhoracompose.notifications.Notificacoes
 import androidx.compose.ui.unit.dp
+import com.example.medhoracompose.data.repository.PreferenciasRepository
+import com.example.medhoracompose.notifications.AgendadorLembretes
+import com.example.medhoracompose.notifications.Notificacoes
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,9 +45,13 @@ fun ConfiguracoesScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+
     val lembretesAtivados = PreferenciasRepository.lembretesAtivados
     val notificacoesAtivadas = PreferenciasRepository.notificacoesAtivadas
-    var mostrarPermissaoNegada by remember { mutableStateOf(false) }
+
+    var mostrarPermissaoNegada by remember {
+        mutableStateOf(false)
+    }
 
     val permissaoLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -58,6 +63,8 @@ fun ConfiguracoesScreen(
             PreferenciasRepository.definirLembretes(false)
             mostrarPermissaoNegada = true
         }
+
+        AgendadorLembretes.atualizar(context)
     }
 
     fun ativarLembretes() {
@@ -70,19 +77,27 @@ fun ConfiguracoesScreen(
             if (concedida) {
                 PreferenciasRepository.definirNotificacoes(true)
                 PreferenciasRepository.definirLembretes(true)
+                AgendadorLembretes.atualizar(context)
             } else {
-                permissaoLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                permissaoLauncher.launch(
+                    Manifest.permission.POST_NOTIFICATIONS
+                )
             }
         } else {
             PreferenciasRepository.definirNotificacoes(true)
             PreferenciasRepository.definirLembretes(true)
+            AgendadorLembretes.atualizar(context)
         }
     }
 
     Scaffold(
         modifier = modifier,
         topBar = {
-            TopAppBar(title = { Text("Configurações") })
+            TopAppBar(
+                title = {
+                    Text("Configurações")
+                }
+            )
         }
     ) { paddingValues ->
         Column(
@@ -98,7 +113,9 @@ fun ConfiguracoesScreen(
                 style = MaterialTheme.typography.titleMedium
             )
 
-            Card(modifier = Modifier.fillMaxWidth()) {
+            Card(
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 Column(
                     modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -108,7 +125,9 @@ fun ConfiguracoesScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Column(modifier = Modifier.weight(1f)) {
+                        Column(
+                            modifier = Modifier.weight(1f)
+                        ) {
                             Text(
                                 text = "Lembretes de medicamentos",
                                 style = MaterialTheme.typography.titleSmall
@@ -123,6 +142,7 @@ fun ConfiguracoesScreen(
                                     ativarLembretes()
                                 } else {
                                     PreferenciasRepository.definirLembretes(false)
+                                    AgendadorLembretes.atualizar(context)
                                 }
                             }
                         )
@@ -135,12 +155,16 @@ fun ConfiguracoesScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Column(modifier = Modifier.weight(1f)) {
+                        Column(
+                            modifier = Modifier.weight(1f)
+                        ) {
                             Text(
                                 text = "Notificações",
                                 style = MaterialTheme.typography.titleSmall
                             )
-                            Text("Ver as configurações de notificações do sistema.")
+                            Text(
+                                "Ver as configurações de notificações do sistema."
+                            )
                         }
 
                         Switch(
@@ -151,6 +175,7 @@ fun ConfiguracoesScreen(
                                 } else {
                                     PreferenciasRepository.definirNotificacoes(false)
                                     PreferenciasRepository.definirLembretes(false)
+                                    AgendadorLembretes.atualizar(context)
                                 }
                             }
                         )
@@ -163,7 +188,9 @@ fun ConfiguracoesScreen(
                 style = MaterialTheme.typography.titleMedium
             )
 
-            Card(modifier = Modifier.fillMaxWidth()) {
+            Card(
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 Column(
                     modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -172,18 +199,21 @@ fun ConfiguracoesScreen(
                         text = "MedHora",
                         style = MaterialTheme.typography.titleLarge
                     )
+
                     Text(
                         text = "Organize seus medicamentos e acompanhe os horários das suas doses."
                     )
+
                     Text(
                         text = "Projeto acadêmico desenvolvido para a disciplina de Programação para Dispositivos Móveis (PDM)."
                     )
+
                     Text("Versão 1.0")
                 }
             }
 
             Text(
-                text = "A permissão permite exibir notificações. O agendamento automático dos horários será implementado na próxima etapa.",
+                text = "Os lembretes dependem das permissões de notificação e das configurações de alarmes do Android.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -192,8 +222,12 @@ fun ConfiguracoesScreen(
 
     if (mostrarPermissaoNegada) {
         AlertDialog(
-            onDismissRequest = { mostrarPermissaoNegada = false },
-            title = { Text("Permissão necessária") },
+            onDismissRequest = {
+                mostrarPermissaoNegada = false
+            },
+            title = {
+                Text("Permissão necessária")
+            },
             text = {
                 Text(
                     "Para receber lembretes, permita que o MedHora envie notificações nas configurações do Android."
@@ -211,7 +245,9 @@ fun ConfiguracoesScreen(
             },
             dismissButton = {
                 TextButton(
-                    onClick = { mostrarPermissaoNegada = false }
+                    onClick = {
+                        mostrarPermissaoNegada = false
+                    }
                 ) {
                     Text("Agora não")
                 }

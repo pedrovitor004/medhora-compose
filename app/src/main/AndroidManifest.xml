@@ -29,6 +29,15 @@
             </intent-filter>
 
         </activity>
+
+        <receiver
+            android:name=".notifications.LembreteReceiver"
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.example.medhoracompose.LEMBRETE" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>
