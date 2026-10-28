@@ -16,13 +16,19 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -44,8 +50,11 @@ fun HomeScreen(
     onDetalhesClick: () -> Unit,
     onHistoricoClick: () -> Unit,
     onDoseClick: (Long) -> Unit = {},
+    onMarcarTomada: (Dose) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    var doseConfirmacao by remember { mutableStateOf<Dose?>(null) }
+
     val hoje = LocalDate.now()
 
     val dataFormatada = hoje.format(
@@ -96,9 +105,7 @@ fun HomeScreen(
                 containerColor = Color(0xFFE6F6EF)
             )
         ) {
-            Column(
-                modifier = Modifier.padding(20.dp)
-            ) {
+            Column(modifier = Modifier.padding(20.dp)) {
                 Text(
                     text = "Resumo de hoje",
                     style = MaterialTheme.typography.titleLarge,
@@ -159,6 +166,9 @@ fun HomeScreen(
                         dose = dose,
                         onClick = {
                             onDoseClick(dose.medicamentoId)
+                        },
+                        onTomarClick = {
+                            doseConfirmacao = dose
                         }
                     )
                 }
@@ -188,25 +198,64 @@ fun HomeScreen(
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Button(
-                onClick = onDetalhesClick
-            ) {
+            Button(onClick = onDetalhesClick) {
                 Text("Detalhes")
             }
 
-            Button(
-                onClick = onHistoricoClick
-            ) {
+            Button(onClick = onHistoricoClick) {
                 Text("Histórico")
             }
         }
+    }
+
+    doseConfirmacao?.let { dose ->
+        AlertDialog(
+            onDismissRequest = {
+                doseConfirmacao = null
+            },
+            title = {
+                Text("Dose registrada!")
+            },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text("Medicamento: ${dose.nome}")
+                    Text("Dosagem: ${dose.dosagem}")
+                    Text("Horário previsto: ${dose.horario}")
+                    Text(
+                        "Confirme para registrar que você tomou esta dose."
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onMarcarTomada(dose)
+                        doseConfirmacao = null
+                    }
+                ) {
+                    Text("Confirmar")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        doseConfirmacao = null
+                    }
+                ) {
+                    Text("Cancelar")
+                }
+            }
+        )
     }
 }
 
 @Composable
 private fun DoseItem(
     dose: Dose,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onTomarClick: () -> Unit
 ) {
     val cor = when (dose.cor) {
         CorMedicamento.VERDE -> Color(0xFF059669)
@@ -216,9 +265,7 @@ private fun DoseItem(
     }
 
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = Color.White
@@ -242,7 +289,9 @@ private fun DoseItem(
             Spacer(modifier = Modifier.width(12.dp))
 
             Column(
-                modifier = Modifier.weight(1f)
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable(onClick = onClick)
             ) {
                 Text(
                     text = dose.nome,
@@ -257,13 +306,41 @@ private fun DoseItem(
                 )
 
                 Text(
-                    text = if (dose.tomadaEm != null) {
-                        "Tomada"
-                    } else {
-                        "Horário: ${dose.horario}"
-                    },
+                    text = "Horário: ${dose.horario}",
                     style = MaterialTheme.typography.bodySmall,
                     color = cor
+                )
+
+                if (dose.tomadaEm != null) {
+                    Text(
+                        text = "Tomada ✓ às ${
+                            dose.tomadaEm.format(
+                                DateTimeFormatter.ofPattern("HH:mm")
+                            )
+                        }",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = VerdeMedHora
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            if (dose.tomadaEm == null) {
+                Button(
+                    onClick = onTomarClick,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = VerdeMedHora
+                    )
+                ) {
+                    Text("Tomar")
+                }
+            } else {
+                Text(
+                    text = "Tomada ✓",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = VerdeMedHora
                 )
             }
         }

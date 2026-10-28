@@ -56,6 +56,10 @@ fun MedHoraNavHost(modifier: Modifier = Modifier) {
                 onDoseClick = { medicamentoId ->
                     medicamentoSelecionadoId = medicamentoId
                     navController.navigate(Routes.DETALHES)
+                },
+                onMarcarTomada = { dose ->
+                    repository.marcarDoseTomada(dose)
+                    atualizacao++
                 }
             )
         }
@@ -87,10 +91,15 @@ fun MedHoraNavHost(modifier: Modifier = Modifier) {
         }
 
         composable(Routes.HISTORICO) {
+            val dosesHistorico = remember(atualizacao) {
+                repository.obterDosesRegistradas()
+            }
+
             HistoricoScreen(
                 onVoltarClick = {
                     navController.popBackStack()
-                }
+                },
+                doses = dosesHistorico
             )
         }
     }
