@@ -25,9 +25,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,6 +35,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.medhoracompose.data.model.CorMedicamento
 import com.example.medhoracompose.data.model.Dose
+import com.example.medhoracompose.ui.common.CalendarioSemanal
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -49,25 +50,40 @@ fun HomeScreen(
     onCadastroClick: () -> Unit,
     onDetalhesClick: () -> Unit,
     onHistoricoClick: () -> Unit,
+    onDataSelecionada: (LocalDate) -> Unit = {},
     onDoseClick: (Long) -> Unit = {},
     onMarcarTomada: (Dose) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    var doseConfirmacao by remember { mutableStateOf<Dose?>(null) }
-
-    val hoje = LocalDate.now()
-
-    val dataFormatada = hoje.format(
-        DateTimeFormatter.ofPattern(
-            "EEEE, d 'de' MMMM",
-            Locale("pt", "BR")
-        )
-    ).replaceFirstChar {
-        it.titlecase(Locale("pt", "BR"))
+    var doseConfirmacao by remember {
+        mutableStateOf<Dose?>(null)
     }
 
-    val dosesTomadas = doses.count { it.tomadaEm != null }
-    val totalDoses = doses.size
+    var dataSelecionada by remember {
+        mutableStateOf(LocalDate.now())
+    }
+
+    val hoje = LocalDate.now()
+    val locale = Locale("pt", "BR")
+
+    val dataFormatada = dataSelecionada.format(
+        DateTimeFormatter.ofPattern(
+            "EEEE, d 'de' MMMM",
+            locale
+        )
+    ).replaceFirstChar {
+        it.titlecase(locale)
+    }
+
+    val dosesDoDia = doses.filter {
+        it.data == dataSelecionada
+    }
+
+    val dosesTomadas = dosesDoDia.count {
+        it.tomadaEm != null
+    }
+
+    val totalDoses = dosesDoDia.size
     val dosesPendentes = totalDoses - dosesTomadas
 
     Column(
@@ -91,12 +107,26 @@ fun HomeScreen(
         )
 
         Text(
-            text = dataFormatada,
+            text = if (dataSelecionada == hoje) {
+                "Hoje, $dataFormatada"
+            } else {
+                dataFormatada
+            },
             style = MaterialTheme.typography.bodyMedium,
             color = Color.Gray
         )
 
-        Spacer(modifier = Modifier.size(20.dp))
+        Spacer(modifier = Modifier.size(16.dp))
+
+        CalendarioSemanal(
+            dataSelecionada = dataSelecionada,
+            onDataSelecionada = { data ->
+                dataSelecionada = data
+                onDataSelecionada(data)
+            }
+        )
+
+        Spacer(modifier = Modifier.size(16.dp))
 
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -105,9 +135,11 @@ fun HomeScreen(
                 containerColor = Color(0xFFE6F6EF)
             )
         ) {
-            Column(modifier = Modifier.padding(20.dp)) {
+            Column(
+                modifier = Modifier.padding(20.dp)
+            ) {
                 Text(
-                    text = "Resumo de hoje",
+                    text = "Resumo do dia",
                     style = MaterialTheme.typography.titleLarge,
                     color = TextoMedHora
                 )
@@ -128,17 +160,21 @@ fun HomeScreen(
             }
         }
 
-        Spacer(modifier = Modifier.size(24.dp))
+        Spacer(modifier = Modifier.size(20.dp))
 
         Text(
-            text = "Próximas doses",
+            text = if (dataSelecionada == hoje) {
+                "Próximas doses"
+            } else {
+                "Doses de $dataFormatada"
+            },
             style = MaterialTheme.typography.titleLarge,
             color = TextoMedHora
         )
 
         Spacer(modifier = Modifier.size(12.dp))
 
-        if (doses.isEmpty()) {
+        if (dosesDoDia.isEmpty()) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
@@ -146,8 +182,7 @@ fun HomeScreen(
                 )
             ) {
                 Text(
-                    text = "Nenhum medicamento cadastrado para hoje. " +
-                            "Toque em \"Adicionar medicamento\" para começar.",
+                    text = "Nenhuma dose programada para este dia.",
                     modifier = Modifier.padding(16.dp),
                     style = MaterialTheme.typography.bodyMedium,
                     color = Color.Gray
@@ -159,7 +194,7 @@ fun HomeScreen(
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 items(
-                    items = doses,
+                    items = dosesDoDia,
                     key = { it.chave }
                 ) { dose ->
                     DoseItem(
@@ -191,20 +226,6 @@ fun HomeScreen(
                 text = "+ Adicionar medicamento",
                 modifier = Modifier.padding(vertical = 6.dp)
             )
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Button(onClick = onDetalhesClick) {
-                Text("Detalhes")
-            }
-
-            Button(onClick = onHistoricoClick) {
-                Text("Histórico")
-            }
         }
     }
 

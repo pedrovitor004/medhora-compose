@@ -109,8 +109,12 @@ fun MedHoraNavHost(modifier: Modifier = Modifier) {
                 startDestination = Routes.HOME
             ) {
                 composable(Routes.HOME) {
-                    val doses = remember(atualizacao) {
-                        repository.obterDoses(LocalDate.now())
+                    var dataSelecionada by remember {
+                        mutableStateOf(LocalDate.now())
+                    }
+
+                    val doses = remember(atualizacao, dataSelecionada) {
+                        repository.obterDoses(dataSelecionada)
                     }
 
                     HomeScreen(
@@ -124,6 +128,9 @@ fun MedHoraNavHost(modifier: Modifier = Modifier) {
                         },
                         onHistoricoClick = {
                             navController.navigate(Routes.HISTORICO)
+                        },
+                        onDataSelecionada = { data ->
+                            dataSelecionada = data
                         },
                         onDoseClick = { medicamentoId ->
                             medicamentoSelecionadoId = medicamentoId

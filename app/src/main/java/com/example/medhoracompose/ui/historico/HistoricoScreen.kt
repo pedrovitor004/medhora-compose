@@ -14,7 +14,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -32,7 +31,6 @@ import java.util.Locale
 
 private val FundoHistorico = Color(0xFFF8FAFC)
 private val TextoHistorico = Color(0xFF183B35)
-private val VerdeHistorico = Color(0xFF059669)
 
 @Composable
 fun HistoricoScreen(
@@ -116,15 +114,6 @@ fun HistoricoScreen(
                     )
                 }
             }
-        }
-
-        Spacer(modifier = Modifier.size(16.dp))
-
-        Button(
-            onClick = onVoltarClick,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Voltar")
         }
     }
 }
