@@ -1,11 +1,12 @@
 package com.example.medhoracompose.navigation
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Modifier
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.runtime.mutableStateOf
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -27,18 +28,20 @@ private object Routes {
 fun MedHoraNavHost(modifier: Modifier = Modifier) {
     val navController = rememberNavController()
     val repository = remember { MedicamentoRepository() }
+
     var atualizacao by remember { mutableIntStateOf(0) }
+    var medicamentoSelecionadoId by remember { mutableStateOf<Long?>(null) }
 
     NavHost(
         navController = navController,
         startDestination = Routes.HOME,
         modifier = modifier
-
     ) {
         composable(Routes.HOME) {
             val doses = remember(atualizacao) {
-                repository.obterDoses(java.time.LocalDate.now())
+                repository.obterDoses(LocalDate.now())
             }
+
             HomeScreen(
                 doses = doses,
                 onCadastroClick = {
@@ -49,6 +52,10 @@ fun MedHoraNavHost(modifier: Modifier = Modifier) {
                 },
                 onHistoricoClick = {
                     navController.navigate(Routes.HISTORICO)
+                },
+                onDoseClick = { medicamentoId ->
+                    medicamentoSelecionadoId = medicamentoId
+                    navController.navigate(Routes.DETALHES)
                 }
             )
         }
@@ -67,10 +74,15 @@ fun MedHoraNavHost(modifier: Modifier = Modifier) {
         }
 
         composable(Routes.DETALHES) {
+            val medicamento = medicamentoSelecionadoId?.let {
+                repository.buscarPorId(it)
+            }
+
             DetalhesScreen(
                 onVoltarClick = {
                     navController.popBackStack()
-                }
+                },
+                medicamento = medicamento
             )
         }
 

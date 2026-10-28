@@ -1,6 +1,7 @@
 ﻿package com.example.medhoracompose.ui.home
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -42,12 +43,19 @@ fun HomeScreen(
     onCadastroClick: () -> Unit,
     onDetalhesClick: () -> Unit,
     onHistoricoClick: () -> Unit,
+    onDoseClick: (Long) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val hoje = LocalDate.now()
+
     val dataFormatada = hoje.format(
-        DateTimeFormatter.ofPattern("EEEE, d 'de' MMMM", Locale("pt", "BR"))
-    ).replaceFirstChar { it.titlecase(Locale("pt", "BR")) }
+        DateTimeFormatter.ofPattern(
+            "EEEE, d 'de' MMMM",
+            Locale("pt", "BR")
+        )
+    ).replaceFirstChar {
+        it.titlecase(Locale("pt", "BR"))
+    }
 
     val dosesTomadas = doses.count { it.tomadaEm != null }
     val totalDoses = doses.size
@@ -84,9 +92,13 @@ fun HomeScreen(
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFFE6F6EF))
+            colors = CardDefaults.cardColors(
+                containerColor = Color(0xFFE6F6EF)
+            )
         ) {
-            Column(modifier = Modifier.padding(20.dp)) {
+            Column(
+                modifier = Modifier.padding(20.dp)
+            ) {
                 Text(
                     text = "Resumo de hoje",
                     style = MaterialTheme.typography.titleLarge,
@@ -122,10 +134,13 @@ fun HomeScreen(
         if (doses.isEmpty()) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color.White)
+                colors = CardDefaults.cardColors(
+                    containerColor = Color.White
+                )
             ) {
                 Text(
-                    text = "Nenhum medicamento cadastrado para hoje. Toque em \"Adicionar medicamento\" para começar.",
+                    text = "Nenhum medicamento cadastrado para hoje. " +
+                            "Toque em \"Adicionar medicamento\" para começar.",
                     modifier = Modifier.padding(16.dp),
                     style = MaterialTheme.typography.bodyMedium,
                     color = Color.Gray
@@ -136,8 +151,16 @@ fun HomeScreen(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                items(doses, key = { it.chave }) { dose ->
-                    DoseItem(dose = dose)
+                items(
+                    items = doses,
+                    key = { it.chave }
+                ) { dose ->
+                    DoseItem(
+                        dose = dose,
+                        onClick = {
+                            onDoseClick(dose.medicamentoId)
+                        }
+                    )
                 }
             }
         }
@@ -165,11 +188,15 @@ fun HomeScreen(
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Button(onClick = onDetalhesClick) {
+            Button(
+                onClick = onDetalhesClick
+            ) {
                 Text("Detalhes")
             }
 
-            Button(onClick = onHistoricoClick) {
+            Button(
+                onClick = onHistoricoClick
+            ) {
                 Text("Histórico")
             }
         }
@@ -177,7 +204,10 @@ fun HomeScreen(
 }
 
 @Composable
-private fun DoseItem(dose: Dose) {
+private fun DoseItem(
+    dose: Dose,
+    onClick: () -> Unit
+) {
     val cor = when (dose.cor) {
         CorMedicamento.VERDE -> Color(0xFF059669)
         CorMedicamento.VERMELHO -> Color(0xFFDC2626)
@@ -186,10 +216,16 @@ private fun DoseItem(dose: Dose) {
     }
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 1.dp
+        )
     ) {
         Row(
             modifier = Modifier
@@ -205,7 +241,9 @@ private fun DoseItem(dose: Dose) {
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            Column(modifier = Modifier.weight(1f)) {
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
                 Text(
                     text = dose.nome,
                     style = MaterialTheme.typography.titleMedium,
@@ -219,7 +257,11 @@ private fun DoseItem(dose: Dose) {
                 )
 
                 Text(
-                    text = if (dose.tomadaEm != null) "Tomada" else "Horário: ${dose.horario}",
+                    text = if (dose.tomadaEm != null) {
+                        "Tomada"
+                    } else {
+                        "Horário: ${dose.horario}"
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = cor
                 )
