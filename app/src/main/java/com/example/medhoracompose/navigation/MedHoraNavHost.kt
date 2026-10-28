@@ -24,6 +24,7 @@ import com.example.medhoracompose.ui.home.HomeScreen
 import com.example.medhoracompose.ui.medicamentos.MedicamentosScreen
 import com.example.medhoracompose.ui.navegacao.BarraNavegacaoInferior
 import com.example.medhoracompose.ui.navegacao.DestinoInferior
+import com.example.medhoracompose.ui.configuracoes.ConfiguracoesScreen
 import java.time.LocalDate
 
 private object Routes {
@@ -208,17 +209,7 @@ fun MedHoraNavHost(modifier: Modifier = Modifier) {
                 }
 
                 composable(Routes.CONFIGURACOES) {
-                    androidx.compose.foundation.layout.Column {
-                        androidx.compose.material3.Text(
-                            text = "Configurações",
-                            modifier = Modifier.padding(24.dp),
-                            style = androidx.compose.material3.MaterialTheme.typography.headlineMedium
-                        )
-                        androidx.compose.material3.Text(
-                            text = "Esta tela será implementada no próximo passo.",
-                            modifier = Modifier.padding(horizontal = 24.dp)
-                        )
-                    }
+                    ConfiguracoesScreen()
                 }
             }
         }
