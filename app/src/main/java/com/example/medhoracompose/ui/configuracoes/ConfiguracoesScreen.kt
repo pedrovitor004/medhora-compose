@@ -1,5 +1,10 @@
 package com.example.medhoracompose.ui.configuracoes
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,11 +15,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
@@ -24,6 +32,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
+import com.example.medhoracompose.data.repository.PreferenciasRepository
+import com.example.medhoracompose.notifications.Notificacoes
 import androidx.compose.ui.unit.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -31,15 +43,46 @@ import androidx.compose.ui.unit.dp
 fun ConfiguracoesScreen(
     modifier: Modifier = Modifier
 ) {
-    var lembretesAtivados by remember { mutableStateOf(false) }
-    var notificacoesAtivadas by remember { mutableStateOf(true) }
+    val context = LocalContext.current
+    val lembretesAtivados = PreferenciasRepository.lembretesAtivados
+    val notificacoesAtivadas = PreferenciasRepository.notificacoesAtivadas
+    var mostrarPermissaoNegada by remember { mutableStateOf(false) }
+
+    val permissaoLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { concedida ->
+        if (concedida) {
+            PreferenciasRepository.definirNotificacoes(true)
+            PreferenciasRepository.definirLembretes(true)
+        } else {
+            PreferenciasRepository.definirLembretes(false)
+            mostrarPermissaoNegada = true
+        }
+    }
+
+    fun ativarLembretes() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val concedida = ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+
+            if (concedida) {
+                PreferenciasRepository.definirNotificacoes(true)
+                PreferenciasRepository.definirLembretes(true)
+            } else {
+                permissaoLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        } else {
+            PreferenciasRepository.definirNotificacoes(true)
+            PreferenciasRepository.definirLembretes(true)
+        }
+    }
 
     Scaffold(
         modifier = modifier,
         topBar = {
-            TopAppBar(
-                title = { Text("Configurações") }
-            )
+            TopAppBar(title = { Text("Configurações") })
         }
     ) { paddingValues ->
         Column(
@@ -55,9 +98,7 @@ fun ConfiguracoesScreen(
                 style = MaterialTheme.typography.titleMedium
             )
 
-            Card(
-                modifier = Modifier.fillMaxWidth()
-            ) {
+            Card(modifier = Modifier.fillMaxWidth()) {
                 Column(
                     modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -67,21 +108,23 @@ fun ConfiguracoesScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Column(
-                            modifier = Modifier.weight(1f)
-                        ) {
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = "Lembretes de medicamentos",
                                 style = MaterialTheme.typography.titleSmall
                             )
-                            Text(
-                                text = "Ativar ou desativar a preferência de lembretes."
-                            )
+                            Text("Ativar ou desativar os lembretes.")
                         }
 
                         Switch(
                             checked = lembretesAtivados,
-                            onCheckedChange = { lembretesAtivados = it }
+                            onCheckedChange = { ativar ->
+                                if (ativar) {
+                                    ativarLembretes()
+                                } else {
+                                    PreferenciasRepository.definirLembretes(false)
+                                }
+                            }
                         )
                     }
 
@@ -92,21 +135,24 @@ fun ConfiguracoesScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Column(
-                            modifier = Modifier.weight(1f)
-                        ) {
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = "Notificações",
                                 style = MaterialTheme.typography.titleSmall
                             )
-                            Text(
-                                text = "Controlar a preferência de notificações do aplicativo."
-                            )
+                            Text("Ver as configurações de notificações do sistema.")
                         }
 
                         Switch(
                             checked = notificacoesAtivadas,
-                            onCheckedChange = { notificacoesAtivadas = it }
+                            onCheckedChange = { ativar ->
+                                if (ativar) {
+                                    Notificacoes.abrirPreferencias(context)
+                                } else {
+                                    PreferenciasRepository.definirNotificacoes(false)
+                                    PreferenciasRepository.definirLembretes(false)
+                                }
+                            }
                         )
                     }
                 }
@@ -117,9 +163,7 @@ fun ConfiguracoesScreen(
                 style = MaterialTheme.typography.titleMedium
             )
 
-            Card(
-                modifier = Modifier.fillMaxWidth()
-            ) {
+            Card(modifier = Modifier.fillMaxWidth()) {
                 Column(
                     modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -134,17 +178,44 @@ fun ConfiguracoesScreen(
                     Text(
                         text = "Projeto acadêmico desenvolvido para a disciplina de Programação para Dispositivos Móveis (PDM)."
                     )
-                    Text(
-                        text = "Versão 1.0"
-                    )
+                    Text("Versão 1.0")
                 }
             }
 
             Text(
-                text = "Os interruptores ainda controlam apenas as preferências nesta tela. A gravação das opções e o agendamento real de notificações serão implementados em uma próxima etapa.",
+                text = "A permissão permite exibir notificações. O agendamento automático dos horários será implementado na próxima etapa.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
+    }
+
+    if (mostrarPermissaoNegada) {
+        AlertDialog(
+            onDismissRequest = { mostrarPermissaoNegada = false },
+            title = { Text("Permissão necessária") },
+            text = {
+                Text(
+                    "Para receber lembretes, permita que o MedHora envie notificações nas configurações do Android."
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        mostrarPermissaoNegada = false
+                        Notificacoes.abrirPreferencias(context)
+                    }
+                ) {
+                    Text("Abrir configurações")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { mostrarPermissaoNegada = false }
+                ) {
+                    Text("Agora não")
+                }
+            }
+        )
     }
 }
