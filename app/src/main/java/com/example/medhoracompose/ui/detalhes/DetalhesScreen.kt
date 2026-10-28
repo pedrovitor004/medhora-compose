@@ -11,21 +11,28 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.medhoracompose.data.model.CorMedicamento
+import com.example.medhoracompose.data.model.Frequencia
 import com.example.medhoracompose.data.model.Medicamento
 import java.time.format.DateTimeFormatter
 
@@ -38,8 +45,14 @@ private val TextoDetalhes = Color(0xFF183B35)
 fun DetalhesScreen(
     onVoltarClick: () -> Unit,
     medicamento: Medicamento? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onEditarClick: (Medicamento) -> Unit = {},
+    onExcluirClick: (Medicamento) -> Unit = {}
 ) {
+    var mostrarConfirmacaoExclusao by remember {
+        mutableStateOf(false)
+    }
+
     val corMedicamento = when (medicamento?.cor ?: CorMedicamento.VERDE) {
         CorMedicamento.VERDE -> Color(0xFF059669)
         CorMedicamento.VERMELHO -> Color(0xFFEF4444)
@@ -54,7 +67,7 @@ fun DetalhesScreen(
             TopAppBar(
                 title = {
                     Text(
-                        "Detalhes do medicamento",
+                        text = "Detalhes do medicamento",
                         color = TextoDetalhes
                     )
                 },
@@ -132,12 +145,9 @@ fun DetalhesScreen(
                         ItemDetalhe(
                             titulo = "Frequência",
                             valor = when (medicamento.frequencia) {
-                                com.example.medhoracompose.data.model.Frequencia.TODOS_OS_DIAS ->
-                                    "Todos os dias"
-                                com.example.medhoracompose.data.model.Frequencia.DIAS_UTEIS ->
-                                    "Dias úteis"
-                                com.example.medhoracompose.data.model.Frequencia.FINS_DE_SEMANA ->
-                                    "Fins de semana"
+                                Frequencia.TODOS_OS_DIAS -> "Todos os dias"
+                                Frequencia.DIAS_UTEIS -> "Dias úteis"
+                                Frequencia.FINS_DE_SEMANA -> "Fins de semana"
                             }
                         )
 
@@ -170,6 +180,28 @@ fun DetalhesScreen(
                         )
                     }
                 }
+
+                Button(
+                    onClick = { onEditarClick(medicamento) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = VerdeDetalhes
+                    )
+                ) {
+                    Text("Editar medicamento")
+                }
+
+                Button(
+                    onClick = { mostrarConfirmacaoExclusao = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFDC2626)
+                    )
+                ) {
+                    Text("Excluir medicamento")
+                }
             }
 
             Spacer(modifier = Modifier.weight(1f))
@@ -177,11 +209,50 @@ fun DetalhesScreen(
             Button(
                 onClick = onVoltarClick,
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = VerdeDetalhes
+                )
             ) {
                 Text("Voltar")
             }
         }
+    }
+
+    if (mostrarConfirmacaoExclusao && medicamento != null) {
+        AlertDialog(
+            onDismissRequest = {
+                mostrarConfirmacaoExclusao = false
+            },
+            title = {
+                Text("Excluir medicamento?")
+            },
+            text = {
+                Text(
+                    "Deseja realmente excluir ${medicamento.nome}? " +
+                            "Essa ação não poderá ser desfeita."
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        mostrarConfirmacaoExclusao = false
+                        onExcluirClick(medicamento)
+                    }
+                ) {
+                    Text("Excluir", color = Color(0xFFDC2626))
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        mostrarConfirmacaoExclusao = false
+                    }
+                ) {
+                    Text("Cancelar")
+                }
+            }
+        )
     }
 }
 
@@ -190,7 +261,9 @@ private fun ItemDetalhe(
     titulo: String,
     valor: String
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
         Text(
             text = titulo,
             style = MaterialTheme.typography.titleSmall,

@@ -24,16 +24,15 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import com.example.medhoracompose.data.model.CorMedicamento
 import com.example.medhoracompose.data.model.Frequencia
 import com.example.medhoracompose.data.model.Medicamento
+import java.time.LocalDate
 import java.time.LocalTime
 
 private val VerdeMedHora = Color(0xFF059669)
@@ -54,20 +54,38 @@ private val TextoMedHora = Color(0xFF183B35)
 fun CadastroScreen(
     onVoltarClick: () -> Unit,
     modifier: Modifier = Modifier,
-    onSalvarClick: (Medicamento) -> Unit = {}
+    onSalvarClick: (Medicamento) -> Unit = {},
+    medicamentoExistente: Medicamento? = null
 ) {
-    var nome by remember { mutableStateOf("") }
-    var dosagem by remember { mutableStateOf("") }
-    var observacoes by remember { mutableStateOf("") }
-    var frequencia by remember {
-        mutableStateOf(Frequencia.TODOS_OS_DIAS)
+    var nome by remember(medicamentoExistente?.id) {
+        mutableStateOf(medicamentoExistente?.nome ?: "")
     }
-    var cor by remember { mutableStateOf(CorMedicamento.VERDE) }
+    var dosagem by remember(medicamentoExistente?.id) {
+        mutableStateOf(medicamentoExistente?.dosagem ?: "")
+    }
+    var observacoes by remember(medicamentoExistente?.id) {
+        mutableStateOf(medicamentoExistente?.observacoes ?: "")
+    }
+    var frequencia by remember(medicamentoExistente?.id) {
+        mutableStateOf(
+            medicamentoExistente?.frequencia ?: Frequencia.TODOS_OS_DIAS
+        )
+    }
+    var cor by remember(medicamentoExistente?.id) {
+        mutableStateOf(medicamentoExistente?.cor ?: CorMedicamento.VERDE)
+    }
     var frequenciaAberta by remember { mutableStateOf(false) }
     var erro by remember { mutableStateOf("") }
 
-    val horarios = remember {
-        mutableStateListOf("08:00")
+    val horarios = remember(medicamentoExistente?.id) {
+        mutableStateListOf<String>().apply {
+            addAll(
+                medicamentoExistente?.horarios
+                    ?.sorted()
+                    ?.map { it.toString() }
+                    ?: listOf("08:00")
+            )
+        }
     }
 
     val cores = listOf(
@@ -77,6 +95,8 @@ fun CadastroScreen(
         CorMedicamento.LILAS to Color(0xFFA78BFA)
     )
 
+    val modoEdicao = medicamentoExistente != null
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = FundoMedHora,
@@ -84,7 +104,11 @@ fun CadastroScreen(
             TopAppBar(
                 title = {
                     Text(
-                        "Cadastro de medicamento",
+                        text = if (modoEdicao) {
+                            "Editar medicamento"
+                        } else {
+                            "Cadastro de medicamento"
+                        },
                         color = TextoMedHora,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -106,28 +130,41 @@ fun CadastroScreen(
                 Button(
                     onClick = {
                         val horariosConvertidos = horarios.mapNotNull {
-                            runCatching { LocalTime.parse(it.trim()) }.getOrNull()
+                            runCatching {
+                                LocalTime.parse(it.trim())
+                            }.getOrNull()
                         }
 
                         when {
-                            nome.isBlank() -> erro = "Informe o nome do medicamento."
-                            dosagem.isBlank() -> erro = "Informe a dosagem."
+                            nome.isBlank() ->
+                                erro = "Informe o nome do medicamento."
+
+                            dosagem.isBlank() ->
+                                erro = "Informe a dosagem."
+
+                            horarios.isEmpty() ->
+                                erro = "Adicione pelo menos um horário."
+
                             horariosConvertidos.size != horarios.size ->
                                 erro = "Confira os horários. Use o formato HH:mm."
-                            horariosConvertidos.isEmpty() ->
-                                erro = "Adicione pelo menos um horário."
+
                             horariosConvertidos.distinct().size != horariosConvertidos.size ->
                                 erro = "Não repita o mesmo horário."
+
                             else -> {
                                 val medicamento = Medicamento(
-                                    id = System.currentTimeMillis(),
+                                    id = medicamentoExistente?.id
+                                        ?: System.currentTimeMillis(),
                                     nome = nome.trim(),
                                     dosagem = dosagem.trim(),
                                     horarios = horariosConvertidos.sorted(),
                                     frequencia = frequencia,
                                     observacoes = observacoes.trim(),
-                                    cor = cor
+                                    cor = cor,
+                                    criadoEm = medicamentoExistente?.criadoEm
+                                        ?: LocalDate.now()
                                 )
+
                                 erro = ""
                                 onSalvarClick(medicamento)
                             }
@@ -141,7 +178,13 @@ fun CadastroScreen(
                     ),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("Salvar medicamento")
+                    Text(
+                        if (modoEdicao) {
+                            "Salvar alterações"
+                        } else {
+                            "Salvar medicamento"
+                        }
+                    )
                 }
             }
         }
@@ -158,10 +201,17 @@ fun CadastroScreen(
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally)
                     .size(72.dp)
-                    .background(Color(0xFFD1FAE5), RoundedCornerShape(20.dp)),
+                    .background(
+                        Color(0xFFD1FAE5),
+                        RoundedCornerShape(20.dp)
+                    ),
                 contentAlignment = Alignment.Center
             ) {
-                Text("✚", color = VerdeMedHora, style = MaterialTheme.typography.headlineLarge)
+                Text(
+                    "✚",
+                    color = VerdeMedHora,
+                    style = MaterialTheme.typography.headlineLarge
+                )
             }
 
             Text(
@@ -184,22 +234,16 @@ fun CadastroScreen(
                             modifier = Modifier
                                 .size(34.dp)
                                 .background(corVisual, CircleShape)
-                                .clickable { cor = corMedicamento }
-                                .then(
-                                    if (cor == corMedicamento) {
-                                        Modifier.padding(3.dp)
-                                    } else {
-                                        Modifier
-                                    }
-                                ),
+                                .clickable { cor = corMedicamento },
                             contentAlignment = Alignment.Center
                         ) {
                             if (cor == corMedicamento) {
                                 Text("✓", color = Color.White)
                             }
                         }
+
                         Text(
-                            when (corMedicamento) {
+                            text = when (corMedicamento) {
                                 CorMedicamento.VERDE -> "Verde"
                                 CorMedicamento.VERMELHO -> "Vermelho"
                                 CorMedicamento.AMARELO -> "Amarelo"
@@ -298,7 +342,10 @@ fun CadastroScreen(
                         TextButton(
                             onClick = { horarios.removeAt(indice) }
                         ) {
-                            Text("Remover", color = Color(0xFFDC2626))
+                            Text(
+                                "Remover",
+                                color = Color(0xFFDC2626)
+                            )
                         }
                     }
                 }
@@ -330,7 +377,7 @@ fun CadastroScreen(
 
             if (erro.isNotBlank()) {
                 Text(
-                    erro,
+                    text = erro,
                     color = Color(0xFFDC2626),
                     style = MaterialTheme.typography.bodySmall
                 )
@@ -350,7 +397,9 @@ private fun CampoCadastro(
     limite: Int,
     linhas: Int = 1
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(5.dp)
+    ) {
         Text(
             titulo,
             color = TextoMedHora,
@@ -359,7 +408,9 @@ private fun CampoCadastro(
 
         OutlinedTextField(
             value = valor,
-            onValueChange = { if (it.length <= limite) aoMudar(it) },
+            onValueChange = {
+                if (it.length <= limite) aoMudar(it)
+            },
             modifier = Modifier.fillMaxWidth(),
             placeholder = { Text(dica) },
             singleLine = linhas == 1,

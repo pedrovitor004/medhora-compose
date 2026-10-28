@@ -3,10 +3,10 @@ package com.example.medhoracompose.navigation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.runtime.mutableStateOf
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -30,7 +30,9 @@ fun MedHoraNavHost(modifier: Modifier = Modifier) {
     val repository = remember { MedicamentoRepository() }
 
     var atualizacao by remember { mutableIntStateOf(0) }
-    var medicamentoSelecionadoId by remember { mutableStateOf<Long?>(null) }
+    var medicamentoSelecionadoId by remember {
+        mutableStateOf<Long?>(null)
+    }
 
     NavHost(
         navController = navController,
@@ -45,6 +47,7 @@ fun MedHoraNavHost(modifier: Modifier = Modifier) {
             HomeScreen(
                 doses = doses,
                 onCadastroClick = {
+                    medicamentoSelecionadoId = null
                     navController.navigate(Routes.CADASTRO)
                 },
                 onDetalhesClick = {
@@ -65,12 +68,22 @@ fun MedHoraNavHost(modifier: Modifier = Modifier) {
         }
 
         composable(Routes.CADASTRO) {
+            val medicamentoParaEditar = medicamentoSelecionadoId?.let {
+                repository.buscarPorId(it)
+            }
+
             CadastroScreen(
                 onVoltarClick = {
                     navController.popBackStack()
                 },
+                medicamentoExistente = medicamentoParaEditar,
                 onSalvarClick = { medicamento ->
-                    repository.adicionar(medicamento)
+                    if (medicamentoParaEditar == null) {
+                        repository.adicionar(medicamento)
+                    } else {
+                        repository.atualizar(medicamento)
+                    }
+
                     atualizacao++
                     navController.popBackStack()
                 }
@@ -86,7 +99,17 @@ fun MedHoraNavHost(modifier: Modifier = Modifier) {
                 onVoltarClick = {
                     navController.popBackStack()
                 },
-                medicamento = medicamento
+                medicamento = medicamento,
+                onEditarClick = { medicamentoParaEditar ->
+                    medicamentoSelecionadoId = medicamentoParaEditar.id
+                    navController.navigate(Routes.CADASTRO)
+                },
+                onExcluirClick = { medicamentoParaExcluir ->
+                    repository.remover(medicamentoParaExcluir.id)
+                    medicamentoSelecionadoId = null
+                    atualizacao++
+                    navController.popBackStack()
+                }
             )
         }
 
