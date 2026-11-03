@@ -3,21 +3,24 @@ package com.example.medhoracompose.navigation
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.medhoracompose.data.repository.MedHoraRepositorioCompartilhado
-import com.example.medhoracompose.notifications.AgendadorLembretes
 import com.example.medhoracompose.ui.cadastro.CadastroScreen
 import com.example.medhoracompose.ui.configuracoes.ConfiguracoesScreen
 import com.example.medhoracompose.ui.detalhes.DetalhesScreen
@@ -41,10 +44,25 @@ private object Routes {
 fun MedHoraNavHost(modifier: Modifier = Modifier) {
     val navController = rememberNavController()
     val repository = MedHoraRepositorioCompartilhado.repository
-    val context = LocalContext.current
+    val dados by repository.dados.collectAsState()
+    val scope = rememberCoroutineScope()
+    val snackbar = remember { SnackbarHostState() }
+    var salvando by remember { mutableStateOf(false) }
 
-    var atualizacao by remember {
-        mutableIntStateOf(0)
+    fun gravar(operacao: suspend () -> Unit) {
+        if (salvando) return
+        salvando = true
+        scope.launch {
+            try {
+                operacao()
+            } catch (cancelada: CancellationException) {
+                throw cancelada
+            } catch (erro: Exception) {
+                snackbar.showSnackbar("Não foi possível salvar. Tente novamente.")
+            } finally {
+                salvando = false
+            }
+        }
     }
 
     var medicamentoSelecionadoId by remember {
@@ -72,6 +90,7 @@ fun MedHoraNavHost(modifier: Modifier = Modifier) {
 
     Scaffold(
         modifier = modifier,
+        snackbarHost = { SnackbarHost(snackbar) },
         bottomBar = {
             if (mostrarBarra) {
                 BarraNavegacaoInferior(
@@ -113,9 +132,7 @@ fun MedHoraNavHost(modifier: Modifier = Modifier) {
                         mutableStateOf(LocalDate.now())
                     }
 
-                    val doses = remember(atualizacao, dataSelecionada) {
-                        repository.obterDoses(dataSelecionada)
-                    }
+                    val doses = dados?.let { repository.obterDoses(dataSelecionada) }.orEmpty()
 
                     HomeScreen(
                         doses = doses,
@@ -137,9 +154,7 @@ fun MedHoraNavHost(modifier: Modifier = Modifier) {
                             navController.navigate(Routes.DETALHES)
                         },
                         onMarcarTomada = { dose ->
-                            repository.marcarDoseTomada(dose)
-                            AgendadorLembretes.atualizar(context)
-                            atualizacao++
+                            gravar { repository.marcarDoseTomada(dose) }
                         }
                     )
                 }
@@ -156,15 +171,14 @@ fun MedHoraNavHost(modifier: Modifier = Modifier) {
                         },
                         medicamentoExistente = medicamentoParaEditar,
                         onSalvarClick = { medicamento ->
-                            if (medicamentoParaEditar == null) {
-                                repository.adicionar(medicamento)
-                            } else {
-                                repository.atualizar(medicamento)
+                            gravar {
+                                if (medicamentoParaEditar == null) {
+                                    repository.adicionar(medicamento)
+                                } else {
+                                    repository.atualizar(medicamento)
+                                }
+                                navController.popBackStack()
                             }
-
-                            AgendadorLembretes.atualizar(context)
-                            atualizacao++
-                            navController.popBackStack()
                         }
                     )
                 }
@@ -184,19 +198,17 @@ fun MedHoraNavHost(modifier: Modifier = Modifier) {
                             navController.navigate(Routes.CADASTRO)
                         },
                         onExcluirClick = { medicamentoParaExcluir ->
-                            repository.remover(medicamentoParaExcluir.id)
-                            AgendadorLembretes.atualizar(context)
-                            medicamentoSelecionadoId = null
-                            atualizacao++
-                            navController.popBackStack()
+                            gravar {
+                                repository.remover(medicamentoParaExcluir.id)
+                                medicamentoSelecionadoId = null
+                                navController.popBackStack()
+                            }
                         }
                     )
                 }
 
                 composable(Routes.HISTORICO) {
-                    val dosesHistorico = remember(atualizacao) {
-                        repository.obterDosesRegistradas()
-                    }
+                    val dosesHistorico = dados?.dosesRegistradas.orEmpty()
 
                     HistoricoScreen(
                         onVoltarClick = {
@@ -207,9 +219,7 @@ fun MedHoraNavHost(modifier: Modifier = Modifier) {
                 }
 
                 composable(Routes.MEDICAMENTOS) {
-                    val medicamentos = remember(atualizacao) {
-                        repository.medicamentos
-                    }
+                    val medicamentos = dados?.medicamentos.orEmpty()
 
                     MedicamentosScreen(
                         medicamentos = medicamentos,

@@ -34,6 +34,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -50,7 +56,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import com.example.medhoracompose.R
 import com.example.medhoracompose.data.repository.PreferenciasRepository
-import com.example.medhoracompose.notifications.AgendadorLembretes
 import com.example.medhoracompose.notifications.Notificacoes
 
 private val FundoConfiguracoes = Color(0xFFF8FAFC)
@@ -67,25 +72,47 @@ fun ConfiguracoesScreen(
 ) {
     val context = LocalContext.current
 
-    val lembretesAtivados = PreferenciasRepository.lembretesAtivados
-    val notificacoesAtivadas = PreferenciasRepository.notificacoesAtivadas
+    val preferencias by PreferenciasRepository.dados.collectAsState()
+    val lembretesAtivados = preferencias?.lembretes ?: false
+    val scope = rememberCoroutineScope()
+    val snackbar = remember { SnackbarHostState() }
+    var salvando by remember { mutableStateOf(false) }
+
+    fun salvarPreferencia(operacao: suspend () -> Unit) {
+        if (salvando) return
+        salvando = true
+        scope.launch {
+            try {
+                operacao()
+            } catch (cancelada: CancellationException) {
+                throw cancelada
+            } catch (erro: Exception) {
+                snackbar.showSnackbar("Não foi possível salvar a preferência. Tente novamente.")
+            } finally {
+                salvando = false
+            }
+        }
+    }
+
+    fun salvarLembretes(ativar: Boolean) = salvarPreferencia {
+        if (ativar) PreferenciasRepository.ativarLembretes()
+        else PreferenciasRepository.definirLembretes(false)
+    }
 
     var mostrarPermissaoNegada by remember { mutableStateOf(false) }
     var mostrarOpcoesSom by remember { mutableStateOf(false) }
-    var somSelecionado by remember { mutableStateOf("Padrão") }
+    val somSelecionado = if (preferencias?.somAtivado != false) "Padrão" else "Silencioso"
 
     val permissaoLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { concedida ->
         if (concedida) {
-            PreferenciasRepository.definirNotificacoes(true)
-            PreferenciasRepository.definirLembretes(true)
+            salvarLembretes(true)
         } else {
-            PreferenciasRepository.definirLembretes(false)
+            salvarLembretes(false)
             mostrarPermissaoNegada = true
         }
 
-        AgendadorLembretes.atualizar(context)
     }
 
     fun ativarLembretes() {
@@ -96,23 +123,20 @@ fun ConfiguracoesScreen(
             ) == PackageManager.PERMISSION_GRANTED
 
             if (concedida) {
-                PreferenciasRepository.definirNotificacoes(true)
-                PreferenciasRepository.definirLembretes(true)
-                AgendadorLembretes.atualizar(context)
+                salvarLembretes(true)
             } else {
                 permissaoLauncher.launch(
                     Manifest.permission.POST_NOTIFICATIONS
                 )
             }
         } else {
-            PreferenciasRepository.definirNotificacoes(true)
-            PreferenciasRepository.definirLembretes(true)
-            AgendadorLembretes.atualizar(context)
+            salvarLembretes(true)
         }
     }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
+        snackbarHost = { SnackbarHost(snackbar) },
         containerColor = FundoConfiguracoes,
         topBar = {
             TopAppBar(
@@ -160,12 +184,12 @@ fun ConfiguracoesScreen(
 
                         Switch(
                             checked = lembretesAtivados,
+                            enabled = !salvando,
                             onCheckedChange = { ativar ->
                                 if (ativar) {
                                     ativarLembretes()
                                 } else {
-                                    PreferenciasRepository.definirLembretes(false)
-                                    AgendadorLembretes.atualizar(context)
+                                    salvarLembretes(false)
                                 }
                             }
                         )
@@ -183,7 +207,7 @@ fun ConfiguracoesScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(52.dp)
-                            .clickable { mostrarOpcoesSom = true },
+                            .clickable(enabled = !salvando) { mostrarOpcoesSom = true },
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
@@ -326,8 +350,10 @@ fun ConfiguracoesScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable {
-                                    somSelecionado = opcao
-                                    mostrarOpcoesSom = false
+                                    salvarPreferencia {
+                                        PreferenciasRepository.definirSom(opcao == "Padrão")
+                                        mostrarOpcoesSom = false
+                                    }
                                 }
                                 .padding(vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically

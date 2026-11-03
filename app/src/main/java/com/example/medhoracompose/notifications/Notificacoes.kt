@@ -13,6 +13,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.example.medhoracompose.MainActivity
 import com.example.medhoracompose.R
+import com.example.medhoracompose.data.repository.PreferenciasRepository
 import com.example.medhoracompose.data.model.Dose
 
 object Notificacoes {
@@ -129,6 +130,7 @@ object Notificacoes {
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
             .setContentIntent(pendingIntent)
+            .setSilent(!PreferenciasRepository.somAtivado)
             .setAutoCancel(true)
             .build()
 
