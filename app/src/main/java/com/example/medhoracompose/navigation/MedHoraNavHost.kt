@@ -2,22 +2,33 @@ package com.example.medhoracompose.navigation
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.platform.LocalContext
+import com.example.medhoracompose.notifications.Notificacoes
+import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.delay
+import com.example.medhoracompose.ui.common.SplashScreen
+import com.example.medhoracompose.ui.common.OnboardingScreen
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.medhoracompose.data.repository.MedHoraRepositorioCompartilhado
-import com.example.medhoracompose.notifications.AgendadorLembretes
 import com.example.medhoracompose.ui.cadastro.CadastroScreen
 import com.example.medhoracompose.ui.configuracoes.ConfiguracoesScreen
 import com.example.medhoracompose.ui.detalhes.DetalhesScreen
@@ -29,6 +40,8 @@ import com.example.medhoracompose.ui.navegacao.DestinoInferior
 import java.time.LocalDate
 
 private object Routes {
+    const val SPLASH = "splash"
+    const val ONBOARDING = "onboarding"
     const val HOME = "home"
     const val CADASTRO = "cadastro"
     const val DETALHES = "detalhes"
@@ -38,16 +51,37 @@ private object Routes {
 }
 
 @Composable
-fun MedHoraNavHost(modifier: Modifier = Modifier) {
+fun MedHoraNavHost(
+    modifier: Modifier = Modifier,
+    medicamentoNotificacaoId: Long? = null,
+    onNotificacaoConsumida: () -> Unit = {}
+) {
+    val context = LocalContext.current
+    val rotaInicial = rememberSaveable { if (medicamentoNotificacaoId != null) Routes.HOME else Routes.SPLASH }
     val navController = rememberNavController()
     val repository = MedHoraRepositorioCompartilhado.repository
-    val context = LocalContext.current
+    val dados by repository.dados.collectAsState()
+    val scope = rememberCoroutineScope()
+    val snackbar = remember { SnackbarHostState() }
+    var salvando by remember { mutableStateOf(false) }
 
-    var atualizacao by remember {
-        mutableIntStateOf(0)
+    fun gravar(operacao: suspend () -> Unit) {
+        if (salvando) return
+        salvando = true
+        scope.launch {
+            try {
+                operacao()
+            } catch (cancelada: CancellationException) {
+                throw cancelada
+            } catch (erro: Exception) {
+                snackbar.showSnackbar("Não foi possível salvar. Tente novamente.")
+            } finally {
+                salvando = false
+            }
+        }
     }
 
-    var medicamentoSelecionadoId by remember {
+    var medicamentoSelecionadoId by rememberSaveable {
         mutableStateOf<Long?>(null)
     }
 
@@ -72,6 +106,7 @@ fun MedHoraNavHost(modifier: Modifier = Modifier) {
 
     Scaffold(
         modifier = modifier,
+        snackbarHost = { SnackbarHost(snackbar) },
         bottomBar = {
             if (mostrarBarra) {
                 BarraNavegacaoInferior(
@@ -91,7 +126,7 @@ fun MedHoraNavHost(modifier: Modifier = Modifier) {
 
                         navController.navigate(rota) {
                             popUpTo(
-                                navController.graph.findStartDestination().id
+                                Routes.HOME
                             ) {
                                 saveState = true
                             }
@@ -103,21 +138,32 @@ fun MedHoraNavHost(modifier: Modifier = Modifier) {
             }
         }
     ) { paddingInterno ->
-        Box(modifier = Modifier.padding(paddingInterno)) {
+        Box(modifier = Modifier.padding(paddingInterno).consumeWindowInsets(paddingInterno)) {
             NavHost(
                 navController = navController,
-                startDestination = Routes.HOME
+                startDestination = rotaInicial
             ) {
+                composable(Routes.SPLASH) {
+                    LaunchedEffect(Unit) {
+                        delay(1400)
+                        navController.navigate(Routes.ONBOARDING) { popUpTo(Routes.SPLASH) { inclusive = true } }
+                    }
+                    SplashScreen()
+                }
+                composable(Routes.ONBOARDING) {
+                    OnboardingScreen {
+                        navController.navigate(Routes.HOME) { popUpTo(Routes.ONBOARDING) { inclusive = true } }
+                    }
+                }
                 composable(Routes.HOME) {
                     var dataSelecionada by remember {
                         mutableStateOf(LocalDate.now())
                     }
 
-                    val doses = remember(atualizacao, dataSelecionada) {
-                        repository.obterDoses(dataSelecionada)
-                    }
+                    val doses = dados?.let { repository.obterDoses(dataSelecionada) }.orEmpty()
 
                     HomeScreen(
+                        onConfiguracoesClick = { navController.navigate(Routes.CONFIGURACOES) },
                         doses = doses,
                         onCadastroClick = {
                             medicamentoSelecionadoId = null
@@ -136,10 +182,12 @@ fun MedHoraNavHost(modifier: Modifier = Modifier) {
                             medicamentoSelecionadoId = medicamentoId
                             navController.navigate(Routes.DETALHES)
                         },
-                        onMarcarTomada = { dose ->
-                            repository.marcarDoseTomada(dose)
-                            AgendadorLembretes.atualizar(context)
-                            atualizacao++
+                        onMarcarTomada = { dose, concluido ->
+                            gravar {
+                                repository.marcarDoseTomada(dose)
+                                Notificacoes.cancelarDose(context, dose.chave)
+                                concluido()
+                            }
                         }
                     )
                 }
@@ -156,15 +204,14 @@ fun MedHoraNavHost(modifier: Modifier = Modifier) {
                         },
                         medicamentoExistente = medicamentoParaEditar,
                         onSalvarClick = { medicamento ->
-                            if (medicamentoParaEditar == null) {
-                                repository.adicionar(medicamento)
-                            } else {
-                                repository.atualizar(medicamento)
+                            gravar {
+                                if (medicamentoParaEditar == null) {
+                                    repository.adicionar(medicamento)
+                                } else {
+                                    repository.atualizar(medicamento)
+                                }
+                                navController.popBackStack()
                             }
-
-                            AgendadorLembretes.atualizar(context)
-                            atualizacao++
-                            navController.popBackStack()
                         }
                     )
                 }
@@ -184,21 +231,20 @@ fun MedHoraNavHost(modifier: Modifier = Modifier) {
                             navController.navigate(Routes.CADASTRO)
                         },
                         onExcluirClick = { medicamentoParaExcluir ->
-                            repository.remover(medicamentoParaExcluir.id)
-                            AgendadorLembretes.atualizar(context)
-                            medicamentoSelecionadoId = null
-                            atualizacao++
-                            navController.popBackStack()
+                            gravar {
+                                repository.remover(medicamentoParaExcluir.id)
+                                medicamentoSelecionadoId = null
+                                navController.popBackStack()
+                            }
                         }
                     )
                 }
 
                 composable(Routes.HISTORICO) {
-                    val dosesHistorico = remember(atualizacao) {
-                        repository.obterDosesRegistradas()
-                    }
+                    val dosesHistorico = dados?.dosesRegistradas.orEmpty()
 
                     HistoricoScreen(
+                        onConfiguracoesClick = { navController.navigate(Routes.CONFIGURACOES) },
                         onVoltarClick = {
                             navController.popBackStack()
                         },
@@ -207,11 +253,10 @@ fun MedHoraNavHost(modifier: Modifier = Modifier) {
                 }
 
                 composable(Routes.MEDICAMENTOS) {
-                    val medicamentos = remember(atualizacao) {
-                        repository.medicamentos
-                    }
+                    val medicamentos = dados?.medicamentos.orEmpty()
 
                     MedicamentosScreen(
+                        onConfiguracoesClick = { navController.navigate(Routes.CONFIGURACOES) },
                         medicamentos = medicamentos,
                         onMedicamentoClick = { medicamentoId ->
                             medicamentoSelecionadoId = medicamentoId
@@ -230,4 +275,21 @@ fun MedHoraNavHost(modifier: Modifier = Modifier) {
             }
         }
     }
+    LaunchedEffect(medicamentoNotificacaoId) {
+        val id = medicamentoNotificacaoId ?: return@LaunchedEffect
+        // Mant?m In?cio no hist?rico de navega??o, inclusive ao abrir com o app fechado.
+        navController.navigate(Routes.HOME) {
+            popUpTo(navController.graph.id)
+            launchSingleTop = true
+        }
+        if (repository.buscarPorId(id) != null) {
+            medicamentoSelecionadoId = id
+            navController.navigate(Routes.DETALHES) { launchSingleTop = true }
+            onNotificacaoConsumida()
+        } else {
+            onNotificacaoConsumida()
+            scope.launch { snackbar.showSnackbar("Este medicamento não está mais disponível.") }
+        }
+    }
+
 }

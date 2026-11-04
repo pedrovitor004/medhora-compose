@@ -90,3 +90,7 @@ O mesmo conceito de aplicativo também está sendo desenvolvido com **layouts XM
 Projeto acadêmico desenvolvido no IFPB — Campus Monteiro.
 
 </div>
+
+## Persistência local
+
+Medicamentos e histórico são armazenados com Room. Preferências de lembretes e som utilizam DataStore Preferences. Consulte o [guia de implementação e demonstração](docs/PERSISTENCIA_LOCAL.md).
