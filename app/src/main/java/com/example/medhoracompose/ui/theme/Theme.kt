@@ -30,6 +30,20 @@ private val LightColorScheme = lightColorScheme(
     onSecondary = MedHoraWhite,
     onTertiary = MedHoraWhite,
     onBackground = MedHoraText,
+    primaryContainer = Color(0xFFD1FAE5),
+    onPrimaryContainer = Color(0xFF064E3B),
+    secondaryContainer = Color(0xFFD1FAE5),
+    onSecondaryContainer = Color(0xFF064E3B),
+    surfaceVariant = Color(0xFFF1F5F4),
+    onSurfaceVariant = Color(0xFF71838A),
+    surfaceContainer = MedHoraWhite,
+    surfaceContainerHigh = MedHoraWhite,
+    surfaceContainerHighest = MedHoraWhite,
+    surfaceTint = Color.Transparent,
+    outline = MedHoraBorder,
+    outlineVariant = MedHoraBorder,
+    error = Color(0xFFE05252),
+    errorContainer = Color(0xFFFFF1F1),
     onSurface = MedHoraText
 )
 
