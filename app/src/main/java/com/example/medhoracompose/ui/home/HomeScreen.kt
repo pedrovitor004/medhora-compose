@@ -41,6 +41,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.Image
+import androidx.compose.material3.Icon
 import com.example.medhoracompose.R
 import com.example.medhoracompose.data.model.CorMedicamento
 import com.example.medhoracompose.data.model.Dose
@@ -64,7 +65,8 @@ fun HomeScreen(
     onHistoricoClick: () -> Unit,
     onDataSelecionada: (LocalDate) -> Unit = {},
     onDoseClick: (Long) -> Unit = {},
-    onMarcarTomada: (Dose) -> Unit = {},
+    onMarcarTomada: (Dose, () -> Unit) -> Unit = { _, _ -> },
+    onConfiguracoesClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var doseConfirmacao by remember {
@@ -80,7 +82,7 @@ fun HomeScreen(
 
     val dataFormatada = dataSelecionada.format(
         DateTimeFormatter.ofPattern(
-            "EEEE, d 'de' MMMM",
+            "d 'de' MMMM",
             locale
         )
     ).replaceFirstChar {
@@ -96,7 +98,8 @@ fun HomeScreen(
     }
 
     val totalDoses = dosesDoDia.size
-    val dosesPendentes = totalDoses - dosesTomadas
+    val dosesAtrasadas = dosesDoDia.count { it.status() == com.example.medhoracompose.data.model.StatusDose.ATRASADA }
+    val dosesPendentes = totalDoses - dosesTomadas - dosesAtrasadas
     val progresso = if (totalDoses > 0) {
         dosesTomadas.toFloat() / totalDoses.toFloat()
     } else {
@@ -108,29 +111,7 @@ fun HomeScreen(
             .fillMaxSize()
             .background(FundoMedHora)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp)
-                .background(BrancoMedHora)
-                .padding(horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Image(
-                painter = painterResource(id = R.drawable.ic_clock),
-                contentDescription = null,
-                modifier = Modifier.size(28.dp)
-            )
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            Text(
-                text = "MedHora",
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextoMedHora
-            )
-        }
+        com.example.medhoracompose.ui.common.MedHoraToolbar("MedHora", onSettings = onConfiguracoesClick, logo = true)
 
         Column(
             modifier = Modifier
@@ -144,7 +125,7 @@ fun HomeScreen(
             ) {
                 Text(
                     text = "Olá! Cuide de você.",
-                    fontSize = 15.sp,
+                    fontSize = 15.sp, letterSpacing = 0.15.sp,
                     fontWeight = FontWeight.Bold,
                     color = TextoMedHora
                 )
@@ -156,7 +137,7 @@ fun HomeScreen(
                         dataFormatada
                     },
                     modifier = Modifier.padding(top = 4.dp),
-                    fontSize = 12.sp,
+                    fontSize = 12.sp, letterSpacing = 0.4.sp,
                     color = TextoSuaveMedHora
                 )
 
@@ -187,7 +168,7 @@ fun HomeScreen(
                     ) {
                         Text(
                             text = "Resumo diário",
-                            fontSize = 15.sp,
+                            fontSize = 15.sp, letterSpacing = 0.15.sp,
                             fontWeight = FontWeight.Bold,
                             color = TextoMedHora
                         )
@@ -195,7 +176,7 @@ fun HomeScreen(
                         Text(
                             text = "$dosesTomadas de $totalDoses doses tomadas",
                             modifier = Modifier.padding(top = 8.dp),
-                            fontSize = 14.sp,
+                            fontSize = 14.sp, letterSpacing = 0.25.sp,
                             color = TextoMedHora
                         )
 
@@ -203,16 +184,18 @@ fun HomeScreen(
                             progress = { progresso },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 10.dp)
-                                .height(6.dp),
+                                .padding(vertical = 11.dp)
+                                .height(4.dp),
                             color = VerdeMedHora,
                             trackColor = BrancoMedHora,
-                            strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
+                            strokeCap = androidx.compose.ui.graphics.StrokeCap.Round,
+                            gapSize = 0.dp,
+                            drawStopIndicator = {}
                         )
 
                         Text(
-                            text = "$dosesPendentes pendentes",
-                            fontSize = 12.sp,
+                            text = "$dosesPendentes pendentes · $dosesAtrasadas atrasadas",
+                            fontSize = 12.sp, letterSpacing = 0.4.sp,
                             color = TextoSuaveMedHora
                         )
                     }
@@ -225,7 +208,7 @@ fun HomeScreen(
                         "Horários de $dataFormatada"
                     },
                     modifier = Modifier.padding(top = 20.dp),
-                    fontSize = 15.sp,
+                    fontSize = 15.sp, letterSpacing = 0.15.sp,
                     fontWeight = FontWeight.Bold,
                     color = TextoMedHora
                 )
@@ -237,7 +220,7 @@ fun HomeScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(24.dp),
-                    fontSize = 12.sp,
+                    fontSize = 12.sp, letterSpacing = 0.4.sp,
                     color = TextoSuaveMedHora,
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
@@ -247,7 +230,7 @@ fun HomeScreen(
                         .fillMaxWidth()
                         .padding(horizontal = 20.dp)
                         .padding(bottom = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     dosesDoDia.forEach { dose ->
                         DoseItem(
@@ -256,7 +239,7 @@ fun HomeScreen(
                                 onDoseClick(dose.medicamentoId)
                             },
                             onTomarClick = {
-                                doseConfirmacao = dose
+                                onMarcarTomada(dose) { doseConfirmacao = dose }
                             }
                         )
                     }
@@ -269,166 +252,37 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp)
-                .padding(bottom = 8.dp)
-                .height(52.dp),
+                .padding(top = 4.dp, bottom = 12.dp)
+                .height(44.dp),
             shape = RoundedCornerShape(12.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = VerdeMedHora
             )
         ) {
-            Image(
+            Icon(
                 painter = painterResource(id = R.drawable.ic_plus),
                 contentDescription = null,
-                modifier = Modifier.size(18.dp)
+                modifier = Modifier.size(18.dp),
+                tint = Color.White
             )
 
             Spacer(modifier = Modifier.width(8.dp))
 
             Text(
                 text = "Adicionar medicamento",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Medium,
+                fontSize = 14.sp, letterSpacing = 0.25.sp,
+                fontWeight = FontWeight.Normal,
                 color = BrancoMedHora
             )
         }
     }
 
     doseConfirmacao?.let { dose ->
-        AlertDialog(
-            onDismissRequest = {
-                doseConfirmacao = null
-            },
-            title = {
-                Text("Dose registrada!")
-            },
-            text = {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Text("Medicamento: ${dose.nome}")
-                    Text("Dosagem: ${dose.dosagem}")
-                    Text("Horário previsto: ${dose.horario}")
-                    Text("Confirme para registrar que você tomou esta dose.")
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        onMarcarTomada(dose)
-                        doseConfirmacao = null
-                    }
-                ) {
-                    Text("Confirmar")
-                }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        doseConfirmacao = null
-                    }
-                ) {
-                    Text("Cancelar")
-                }
-            }
-        )
+        com.example.medhoracompose.ui.common.DoseRegisteredDialog(dose) { doseConfirmacao = null }
     }
 }
 
 @Composable
-private fun DoseItem(
-    dose: Dose,
-    onClick: () -> Unit,
-    onTomarClick: () -> Unit
-) {
-    val cor = when (dose.cor) {
-        CorMedicamento.VERDE -> Color(0xFF059669)
-        CorMedicamento.VERMELHO -> Color(0xFFDC2626)
-        CorMedicamento.AMARELO -> Color(0xFFD97706)
-        CorMedicamento.LILAS -> Color(0xFF9333EA)
-    }
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = BrancoMedHora
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 1.dp
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(12.dp)
-                    .background(cor, CircleShape)
-            )
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .clickable(onClick = onClick)
-            ) {
-                Text(
-                    text = dose.nome,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextoMedHora
-                )
-
-                Text(
-                    text = dose.dosagem,
-                    fontSize = 14.sp,
-                    color = TextoSuaveMedHora
-                )
-
-                Text(
-                    text = "Horário: ${dose.horario}",
-                    fontSize = 12.sp,
-                    color = cor
-                )
-
-                if (dose.tomadaEm != null) {
-                    Text(
-                        text = "Tomada ✓ às ${
-                            dose.tomadaEm.format(
-                                DateTimeFormatter.ofPattern("HH:mm")
-                            )
-                        }",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = VerdeMedHora
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.width(8.dp))
-
-            if (dose.tomadaEm == null) {
-                Button(
-                    onClick = onTomarClick,
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = VerdeMedHora
-                    )
-                ) {
-                    Text("Tomar")
-                }
-            } else {
-                Text(
-                    text = "Tomada ✓",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = VerdeMedHora
-                )
-            }
-        }
-    }
+private fun DoseItem(dose: Dose, onClick: () -> Unit, onTomarClick: () -> Unit) {
+    com.example.medhoracompose.ui.common.DoseCard(dose, onClick, onTomarClick)
 }

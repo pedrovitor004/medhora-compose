@@ -1,98 +1,57 @@
-﻿package com.example.medhoracompose.data.repository
+package com.example.medhoracompose.data.repository
 
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateMapOf
-import com.example.medhoracompose.data.model.CorMedicamento
+import com.example.medhoracompose.data.local.MedHoraDao
+import com.example.medhoracompose.data.local.paraEntidade
 import com.example.medhoracompose.data.model.Dose
-import com.example.medhoracompose.data.model.Frequencia
 import com.example.medhoracompose.data.model.Medicamento
 import java.time.LocalDate
 import java.time.LocalDateTime
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 
-class MedicamentoRepository {
+data class DadosMedicamentos(
+    val medicamentos: List<Medicamento>,
+    val dosesRegistradas: List<Dose>
+)
 
-    // Lista observável pela interface Compose.
-    private val listaMedicamentos = mutableStateListOf<Medicamento>()
-
-    // Guarda os registros de doses já marcadas como tomadas.
-    private val dosesRegistradas = mutableStateMapOf<String, Dose>()
+class MedicamentoRepository(private val dao: MedHoraDao, scope: CoroutineScope) {
+    // O banco é a fonte dos dados. Cada alteração gera uma nova emissão para a UI.
+    // null significa que a primeira leitura ainda não terminou.
+    val dados = combine(dao.observarMedicamentos(), dao.observarDoses()) { medicamentos, doses ->
+        DadosMedicamentos(medicamentos.map { it.paraModelo() }, doses.map { it.paraModelo() })
+    }.stateIn(scope, SharingStarted.Eagerly, null)
 
     val medicamentos: List<Medicamento>
-        get() = listaMedicamentos.toList()
+        get() = dados.value?.medicamentos.orEmpty()
 
-    fun adicionar(medicamento: Medicamento) {
-        if (listaMedicamentos.none { it.id == medicamento.id }) {
-            listaMedicamentos.add(medicamento)
-        }
-    }
+    suspend fun adicionar(medicamento: Medicamento) = dao.adicionar(medicamento.paraEntidade())
+    suspend fun atualizar(medicamento: Medicamento) = dao.atualizar(medicamento.paraEntidade())
+    suspend fun remover(medicamentoId: Long) = dao.remover(medicamentoId)
 
-    fun atualizar(medicamento: Medicamento) {
-        val indice = listaMedicamentos.indexOfFirst {
-            it.id == medicamento.id
-        }
-
-        if (indice >= 0) {
-            listaMedicamentos[indice] = medicamento
-        }
-    }
-
-    fun remover(medicamentoId: Long) {
-        listaMedicamentos.removeAll {
-            it.id == medicamentoId
-        }
-    }
-
-    fun buscarPorId(medicamentoId: Long): Medicamento? {
-        return listaMedicamentos.find {
-            it.id == medicamentoId
-        }
-    }
+    fun buscarPorId(medicamentoId: Long): Medicamento? = medicamentos.find { it.id == medicamentoId }
 
     fun obterDoses(data: LocalDate = LocalDate.now()): List<Dose> {
-        return listaMedicamentos
-            .filter { it.frequencia.ocorreEm(data) }
+        val registros = obterDosesRegistradas().associateBy { it.chave }
+        return medicamentos
+            .filter { !data.isBefore(it.criadoEm) && it.frequencia.ocorreEm(data) }
             .flatMap { medicamento ->
                 medicamento.horarios.map { horario ->
-                    val doseBase = Dose(
-                        medicamentoId = medicamento.id,
-                        nome = medicamento.nome,
-                        dosagem = medicamento.dosagem,
-                        cor = medicamento.cor,
-                        data = data,
-                        horario = horario
-                    )
-
-                    dosesRegistradas[doseBase.chave] ?: doseBase
+                    val dose = Dose(medicamento.id, medicamento.nome, medicamento.dosagem,
+                        medicamento.cor, data, horario)
+                    registros[dose.chave] ?: dose
                 }
-            }
-            .sortedBy { it.horario }
+            }.sortedBy { it.horario }
     }
 
-    fun marcarDoseTomada(
-        dose: Dose,
-        momento: LocalDateTime = LocalDateTime.now()
-    ) {
-        dosesRegistradas[dose.chave] = dose.copy(
-            tomadaEm = momento
-        )
-    }
+    suspend fun marcarDoseTomada(dose: Dose, momento: LocalDateTime = LocalDateTime.now()) =
+        dao.registrarDoseSeAusente(dose.paraEntidade(momento))
 
-    fun desmarcarDose(dose: Dose) {
-        val doseRegistrada = dosesRegistradas[dose.chave]
+    suspend fun desmarcarDose(dose: Dose) =
+        dao.desmarcarDose(dose.medicamentoId, dose.data, dose.horario)
 
-        if (doseRegistrada != null) {
-            dosesRegistradas[dose.chave] =
-                doseRegistrada.copy(tomadaEm = null)
-        }
-    }
+    fun obterDosesRegistradas(): List<Dose> = dados.value?.dosesRegistradas.orEmpty()
 
-    fun obterDosesRegistradas(): List<Dose> {
-        return dosesRegistradas.values
-            .sortedWith(compareBy({ it.data }, { it.horario }))
-    }
-
-    fun limpar() {
-        listaMedicamentos.clear()
-        dosesRegistradas.clear()
-    }
+    suspend fun limpar() = dao.limpar()
 }

@@ -54,6 +54,7 @@ fun MedicamentosScreen(
     medicamentos: List<Medicamento>,
     onMedicamentoClick: (Long) -> Unit,
     onAdicionarClick: () -> Unit,
+    onConfiguracoesClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var busca by remember { mutableStateOf("") }
@@ -73,18 +74,7 @@ fun MedicamentosScreen(
             .fillMaxSize()
             .background(FundoMedicamentos)
     ) {
-        // Título equivalente ao estilo MedHora.Title.
-        Text(
-            text = "Meus medicamentos",
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 16.dp),
-            style = MaterialTheme.typography.titleLarge.copy(
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold
-            ),
-            color = TextoMedicamentos
-        )
+        com.example.medhoracompose.ui.common.MedHoraToolbar("Meus medicamentos", onSettings = onConfiguracoesClick)
 
         // Campo de busca com cantos de 10 dp e fundo branco.
         Column(
@@ -104,7 +94,7 @@ fun MedicamentosScreen(
                         tint = TextoSecundario
                     )
                 },
-                placeholder = {
+                label = {
                     Text(
                         text = "Buscar medicamento",
                         color = TextoSecundario
@@ -129,7 +119,6 @@ fun MedicamentosScreen(
         if (medicamentosFiltrados.isEmpty()) {
             Box(
                 modifier = Modifier
-                    .weight(1f)
                     .fillMaxWidth()
                     .padding(24.dp),
                 contentAlignment = Alignment.Center
@@ -199,7 +188,7 @@ fun MedicamentosScreen(
                                 Text(
                                     text = medicamento.nome,
                                     style = MaterialTheme.typography.titleMedium.copy(
-                                        fontSize = 15.sp,
+                                        fontSize = 15.sp, letterSpacing = 0.15.sp,
                                         fontWeight = FontWeight.Bold
                                     ),
                                     color = TextoMedicamentos
@@ -239,6 +228,8 @@ fun MedicamentosScreen(
             }
         }
 
+        if (medicamentosFiltrados.isEmpty()) Spacer(Modifier.weight(1f))
+
         // Botão equivalente ao estilo MedHora.Button.
         Button(
             onClick = onAdicionarClick,
@@ -265,7 +256,7 @@ fun MedicamentosScreen(
 
             Text(
                 text = "Adicionar medicamento",
-                fontSize = 14.sp,
+                fontSize = 14.sp, letterSpacing = 0.25.sp,
                 fontWeight = FontWeight.Medium
             )
         }

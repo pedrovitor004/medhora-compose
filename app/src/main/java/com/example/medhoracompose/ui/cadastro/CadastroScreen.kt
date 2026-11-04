@@ -2,12 +2,14 @@
 
 import android.app.TimePickerDialog
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -177,34 +179,7 @@ fun CadastroScreen(
         modifier = modifier.fillMaxSize(),
         containerColor = FundoMedHora,
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = if (modoEdicao) {
-                            "Editar medicamento"
-                        } else {
-                            "Novo medicamento"
-                        },
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextoMedHora
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onVoltarClick) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_back),
-                            contentDescription = "Voltar",
-                            tint = TextoMedHora
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = FundoMedHora,
-                    titleContentColor = TextoMedHora,
-                    navigationIconContentColor = TextoMedHora
-                )
-            )
+            com.example.medhoracompose.ui.common.MedHoraToolbar(if (modoEdicao) "Editar medicamento" else "Novo medicamento", onBack = onVoltarClick)
         },
         bottomBar = {
             Column(
@@ -274,7 +249,7 @@ fun CadastroScreen(
                 ) {
                     Text(
                         "Salvar",
-                        fontSize = 14.sp,
+                        fontSize = 14.sp, letterSpacing = 0.25.sp,
                         fontWeight = FontWeight.Medium
                     )
                 }
@@ -286,7 +261,7 @@ fun CadastroScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 12.dp),
+                .padding(horizontal = 20.dp, vertical = 20.dp),
             verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
             Box(
@@ -321,17 +296,15 @@ fun CadastroScreen(
                     .fillMaxWidth()
                     .padding(top = 12.dp),
                 color = TextoSecundarioMedHora,
-                fontSize = 12.sp,
+                fontSize = 12.sp, letterSpacing = 0.4.sp,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
 
-            Row(
+            FlowRow(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState())
-                    .padding(top = 8.dp),
+                    .fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 cores.forEach { (corMedicamento, nomeCor, corVisual) ->
                     FilterChip(
@@ -342,7 +315,7 @@ fun CadastroScreen(
                         label = {
                             Text(
                                 nomeCor,
-                                fontSize = 12.sp
+                                fontSize = 14.sp
                             )
                         },
                         shape = RoundedCornerShape(8.dp),
@@ -358,13 +331,7 @@ fun CadastroScreen(
                             borderColor = BordaMedHora,
                             selectedBorderColor = VerdeMedHora
                         ),
-                        leadingIcon = {
-                            Box(
-                                modifier = Modifier
-                                    .size(12.dp)
-                                    .background(corVisual, CircleShape)
-                            )
-                        }
+                        leadingIcon = null
                     )
                 }
             }
@@ -391,7 +358,7 @@ fun CadastroScreen(
                 "Frequência",
                 modifier = Modifier.padding(top = 18.dp, bottom = 6.dp),
                 color = TextoMedHora,
-                fontSize = 15.sp,
+                fontSize = 15.sp, letterSpacing = 0.15.sp,
                 fontWeight = FontWeight.Bold
             )
 
@@ -464,7 +431,7 @@ fun CadastroScreen(
                 "Horários",
                 modifier = Modifier.padding(top = 18.dp, bottom = 8.dp),
                 color = TextoMedHora,
-                fontSize = 15.sp,
+                fontSize = 15.sp, letterSpacing = 0.15.sp,
                 fontWeight = FontWeight.Bold
             )
 
@@ -473,16 +440,14 @@ fun CadastroScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 8.dp)
-                        .background(
-                            FundoCampoMedHora,
-                            RoundedCornerShape(10.dp)
-                        ),
+                        .background(FundoCampoMedHora, RoundedCornerShape(10.dp))
+                        .border(1.dp, BordaMedHora, RoundedCornerShape(10.dp)),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(
                         modifier = Modifier
                             .weight(1f)
-                            .height(56.dp)
+                            .height(48.dp)
                             .clickable {
                                 abrirSeletorHorario(indice)
                             }
@@ -501,7 +466,7 @@ fun CadastroScreen(
                         Text(
                             text = horario,
                             color = TextoMedHora,
-                            fontSize = 14.sp,
+                            fontSize = 14.sp, letterSpacing = 0.25.sp,
                             fontWeight = FontWeight.Medium
                         )
                     }
@@ -601,7 +566,7 @@ private fun CampoCadastro(
             text = titulo,
             modifier = Modifier.padding(bottom = 6.dp),
             color = TextoMedHora,
-            fontSize = 15.sp,
+            fontSize = 15.sp, letterSpacing = 0.15.sp,
             fontWeight = FontWeight.Bold
         )
 
@@ -633,8 +598,8 @@ private fun CampoCadastro(
                 focusedPlaceholderColor = TextoSecundarioMedHora,
                 unfocusedPlaceholderColor = TextoSecundarioMedHora
             ),
-            textStyle = MaterialTheme.typography.bodyMedium.copy(
-                fontSize = 14.sp
+            textStyle = MaterialTheme.typography.bodyLarge.copy(
+                fontSize = 16.sp
             )
         )
     }

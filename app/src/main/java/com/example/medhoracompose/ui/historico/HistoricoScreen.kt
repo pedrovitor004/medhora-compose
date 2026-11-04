@@ -59,6 +59,7 @@ private enum class PeriodoHistorico(
 fun HistoricoScreen(
     onVoltarClick: () -> Unit,
     doses: List<Dose> = emptyList(),
+    onConfiguracoesClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var periodoSelecionado by remember {
@@ -88,28 +89,14 @@ fun HistoricoScreen(
             .fillMaxSize()
             .background(FundoHistorico)
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp)
-                .background(Color.White)
-                .padding(horizontal = 20.dp),
-            contentAlignment = Alignment.CenterStart
-        ) {
-            Text(
-                text = "Histórico",
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextoHistorico
-            )
-        }
+        com.example.medhoracompose.ui.common.MedHoraToolbar("Histórico", onSettings = onConfiguracoesClick)
 
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp)
                 .padding(bottom = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(0.dp)
         ) {
             PeriodoHistorico.entries.forEach { periodo ->
                 val selecionado = periodoSelecionado == periodo
@@ -120,8 +107,9 @@ fun HistoricoScreen(
                     },
                     modifier = Modifier
                         .weight(1f)
-                        .height(40.dp),
-                    shape = RoundedCornerShape(10.dp),
+                        .height(48.dp),
+                    shape = RoundedCornerShape(0.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, VerdeHistorico),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = if (selecionado) {
                             VerdeClaroHistorico
@@ -155,13 +143,12 @@ fun HistoricoScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f)
                     .padding(24.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = "Nenhum registro de dose neste período.",
-                    fontSize = 12.sp,
+                    fontSize = 12.sp, letterSpacing = 0.4.sp,
                     color = TextoSuaveHistorico
                 )
             }
@@ -177,94 +164,14 @@ fun HistoricoScreen(
                 ),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(
-                    items = dosesOrdenadas,
-                    key = { it.chave }
-                ) { dose ->
-                    HistoricoDoseItem(
-                        dose = dose,
-                        dataFormatada = dose.data.format(formatoData)
-                    )
+                dosesOrdenadas.groupBy { it.data }.forEach { (data, registros) ->
+                    item(key = data.toString()) {
+                        Text(data.format(formatoData), Modifier.padding(top = 16.dp, bottom = 8.dp), fontSize = 15.sp, letterSpacing = 0.15.sp, fontWeight = FontWeight.Bold, color = TextoHistorico)
+                    }
+                    items(registros, key = { it.chave }) { dose ->
+                        com.example.medhoracompose.ui.common.DoseCard(dose)
+                    }
                 }
-            }
-        }
-    }
-}
-
-@Composable
-private fun HistoricoDoseItem(
-    dose: Dose,
-    dataFormatada: String
-) {
-    val corMedicamento = when (dose.cor) {
-        CorMedicamento.VERDE -> Color(0xFF059669)
-        CorMedicamento.VERMELHO -> Color(0xFFDC2626)
-        CorMedicamento.AMARELO -> Color(0xFFD97706)
-        CorMedicamento.LILAS -> Color(0xFF9333EA)
-    }
-
-    val status = dose.status()
-
-    val (textoStatus, corStatus) = when (status) {
-        StatusDose.TOMADA -> "Tomada" to Color(0xFF059669)
-        StatusDose.PENDENTE -> "Pendente" to Color(0xFFD97706)
-        StatusDose.ATRASADA -> "Atrasada" to Color(0xFFDC2626)
-        StatusDose.PROGRAMADA -> "Programada" to Color(0xFF64748B)
-    }
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 1.dp
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(12.dp)
-                    .background(corMedicamento, CircleShape)
-            )
-
-            Spacer(modifier = Modifier.size(12.dp))
-
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Text(
-                    text = dose.nome,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextoHistorico
-                )
-
-                Text(
-                    text = dose.dosagem,
-                    fontSize = 14.sp,
-                    color = TextoSuaveHistorico
-                )
-
-                Text(
-                    text = "$dataFormatada • ${dose.horario}",
-                    fontSize = 12.sp,
-                    color = TextoSuaveHistorico
-                )
-
-                Text(
-                    text = textoStatus,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = corStatus
-                )
             }
         }
     }

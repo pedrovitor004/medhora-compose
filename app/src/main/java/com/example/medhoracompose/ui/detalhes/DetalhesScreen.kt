@@ -86,28 +86,7 @@ fun DetalhesScreen(
         modifier = modifier.fillMaxSize(),
         containerColor = FundoDetalhes,
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "Detalhes do medicamento",
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextoDetalhes
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onVoltarClick) {
-                        Icon(
-                            painter = painterResource(R.drawable.ic_back),
-                            contentDescription = "Voltar",
-                            tint = TextoDetalhes
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = FundoDetalhes
-                )
-            )
+            com.example.medhoracompose.ui.common.MedHoraToolbar("Detalhes do medicamento", onBack = onVoltarClick)
         },
         bottomBar = {
             if (medicamento != null) {
@@ -127,11 +106,11 @@ fun DetalhesScreen(
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color.White,
-                            contentColor = TextoDetalhes
+                            contentColor = VerdeDetalhes
                         ),
                         border = androidx.compose.foundation.BorderStroke(
                             1.dp,
-                            BordaDetalhes
+                            Color(0xFF10B981)
                         )
                     ) {
                         Icon(
@@ -185,7 +164,7 @@ fun DetalhesScreen(
                         .fillMaxWidth()
                         .padding(24.dp),
                     color = TextoSuaveDetalhes,
-                    fontSize = 12.sp,
+                    fontSize = 12.sp, letterSpacing = 0.4.sp,
                     textAlign = TextAlign.Center
                 )
             } else {
@@ -213,7 +192,7 @@ fun DetalhesScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 16.dp),
-                    fontSize = 22.sp,
+                    fontSize = 22.sp, letterSpacing = 0.sp,
                     fontWeight = FontWeight.Bold,
                     color = TextoDetalhes,
                     textAlign = TextAlign.Center
@@ -224,7 +203,7 @@ fun DetalhesScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 4.dp),
-                    fontSize = 14.sp,
+                    fontSize = 14.sp, letterSpacing = 0.25.sp,
                     color = TextoSuaveDetalhes,
                     textAlign = TextAlign.Center
                 )
@@ -235,7 +214,7 @@ fun DetalhesScreen(
                     if (medicamento.horarios.isEmpty()) {
                         Text(
                             text = "Nenhum horário cadastrado",
-                            fontSize = 14.sp,
+                            fontSize = 14.sp, letterSpacing = 0.25.sp,
                             color = TextoSuaveDetalhes
                         )
                     } else {
@@ -257,7 +236,7 @@ fun DetalhesScreen(
                                         text = horario.format(
                                             DateTimeFormatter.ofPattern("HH:mm")
                                         ),
-                                        fontSize = 14.sp,
+                                        fontSize = 14.sp, letterSpacing = 0.25.sp,
                                         color = TextoDetalhes
                                     )
                                 }
@@ -275,7 +254,7 @@ fun DetalhesScreen(
                             Frequencia.DIAS_UTEIS -> "Dias úteis"
                             Frequencia.FINS_DE_SEMANA -> "Fins de semana"
                         },
-                        fontSize = 14.sp,
+                        fontSize = 14.sp, letterSpacing = 0.25.sp,
                         color = TextoDetalhes
                     )
                 }
@@ -285,7 +264,7 @@ fun DetalhesScreen(
                 CartaoDetalhes(titulo = "Última dose") {
                     Text(
                         text = "Consulte o histórico para verificar os registros de doses.",
-                        fontSize = 14.sp,
+                        fontSize = 14.sp, letterSpacing = 0.25.sp,
                         color = TextoSuaveDetalhes
                     )
                 }
@@ -297,7 +276,7 @@ fun DetalhesScreen(
                         text = medicamento.observacoes.ifBlank {
                             "Nenhuma observação informada"
                         },
-                        fontSize = 14.sp,
+                        fontSize = 14.sp, letterSpacing = 0.25.sp,
                         color = if (medicamento.observacoes.isBlank()) {
                             TextoSuaveDetalhes
                         } else {
@@ -367,7 +346,7 @@ private fun CartaoDetalhes(
         ) {
             Text(
                 text = titulo,
-                fontSize = 15.sp,
+                fontSize = 15.sp, letterSpacing = 0.15.sp,
                 fontWeight = FontWeight.Bold,
                 color = TextoDetalhes
             )

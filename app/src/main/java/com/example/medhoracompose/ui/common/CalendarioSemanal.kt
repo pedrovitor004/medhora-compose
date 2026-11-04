@@ -74,7 +74,7 @@ fun CalendarioSemanal(
                 Text(
                     text = "$nomeDia\n${data.dayOfMonth}",
                     color = if (selecionado) Color.White else TextoCalendario,
-                    fontSize = 12.sp,
+                    fontSize = 12.sp, letterSpacing = 0.4.sp,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center,
                     lineHeight = 18.sp,
