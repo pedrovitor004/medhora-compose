@@ -5,10 +5,13 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.os.SystemClock
+import android.net.Uri
 import com.example.medhoracompose.data.model.Dose
 import com.example.medhoracompose.data.model.Medicamento
 import com.example.medhoracompose.data.repository.MedHoraRepositorioCompartilhado
 import com.example.medhoracompose.data.repository.PreferenciasRepository
+import com.example.medhoracompose.data.repository.MedicamentoRepository
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -19,7 +22,9 @@ object AgendadorLembretes {
     const val ACTION_LEMBRETE =
         "com.example.medhoracompose.LEMBRETE"
 
-    private const val EXTRA_CHAVE_DOSE = "chave_dose"
+    const val ACTION_ADIADO = "com.example.medhoracompose.LEMBRETE_ADIADO"
+
+    const val EXTRA_CHAVE_DOSE = "chave_dose"
 
     fun atualizar(context: Context) {
         val appContext = context.applicationContext
@@ -104,29 +109,53 @@ object AgendadorLembretes {
             .toInstant()
             .toEpochMilli()
 
+        agendarAlarme(alarmManager, AlarmManager.RTC_WAKEUP, instante, pendingIntent)
+    }
+
+    private fun agendarAlarme(manager: AlarmManager, tipo: Int, instante: Long, pendingIntent: PendingIntent) {
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
-                !alarmManager.canScheduleExactAlarms()
-            ) {
-                alarmManager.setAndAllowWhileIdle(
-                    AlarmManager.RTC_WAKEUP,
-                    instante,
-                    pendingIntent
-                )
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !manager.canScheduleExactAlarms()) {
+                manager.setAndAllowWhileIdle(tipo, instante, pendingIntent)
             } else {
-                alarmManager.setExactAndAllowWhileIdle(
-                    AlarmManager.RTC_WAKEUP,
-                    instante,
-                    pendingIntent
-                )
+                manager.setExactAndAllowWhileIdle(tipo, instante, pendingIntent)
             }
         } catch (_: SecurityException) {
-            alarmManager.setAndAllowWhileIdle(
-                AlarmManager.RTC_WAKEUP,
-                instante,
-                pendingIntent
-            )
+            manager.setAndAllowWhileIdle(tipo, instante, pendingIntent)
         }
+    }
+
+    private fun intentAdiado(context: Context, chave: String) = Intent(context, LembreteReceiver::class.java).apply {
+        action = ACTION_ADIADO
+        data = Uri.parse("medhora://lembrete-adiado/${Uri.encode(chave)}")
+        putExtra(EXTRA_CHAVE_DOSE, chave)
+    }
+
+    fun adiar(context: Context, dose: Dose) {
+        val manager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val pending = PendingIntent.getBroadcast(context, 0, intentAdiado(context, dose.chave),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        // Identidade separada: atualizar os hor?rios normais n?o remove o adiamento.
+        agendarAlarme(manager, AlarmManager.ELAPSED_REALTIME_WAKEUP,
+            SystemClock.elapsedRealtime() + 10 * 60 * 1000L, pending)
+    }
+
+    fun cancelarAdiado(context: Context, chave: String) {
+        val pending = PendingIntent.getBroadcast(context, 0, intentAdiado(context, chave),
+            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE) ?: return
+        (context.getSystemService(Context.ALARM_SERVICE) as AlarmManager).cancel(pending)
+        pending.cancel()
+    }
+
+    internal fun obterDosePendente(chave: String, repository: MedicamentoRepository = MedHoraRepositorioCompartilhado.repository): Dose? {
+        val partes = chave.split("|")
+        if (partes.size != 3) return null
+        val id = partes[0].toLongOrNull() ?: return null
+        val data = runCatching { LocalDate.parse(partes[1]) }.getOrNull() ?: return null
+        val horario = runCatching { LocalTime.parse(partes[2]) }.getOrNull() ?: return null
+        val dose = repository.obterDoses(data)
+            .firstOrNull { it.medicamentoId == id && it.horario == horario } ?: return null
+        if (dose.tomadaEm != null || data.atTime(horario).isAfter(LocalDateTime.now())) return null
+        return dose
     }
 
     private fun cancelarTodos(
@@ -193,61 +222,15 @@ object AgendadorLembretes {
 
     fun entregar(context: Context, intent: Intent) {
         val chave = intent.getStringExtra(EXTRA_CHAVE_DOSE) ?: return
-        val repository = MedHoraRepositorioCompartilhado.repository
-
         if (!PreferenciasRepository.lembretesAtivados ||
-            !PreferenciasRepository.notificacoesAtivadas ||
-            !Notificacoes.permitidas(context)
-        ) {
-            return
-        }
+            !PreferenciasRepository.notificacoesAtivadas || !Notificacoes.permitidas(context)) return
 
-        val partes = chave.split("|")
-        if (partes.size != 3) return
-
-        val medicamentoId = partes[0].toLongOrNull() ?: return
-        val data = runCatching {
-            LocalDate.parse(partes[1])
-        }.getOrNull() ?: return
-        val horario = runCatching {
-            LocalTime.parse(partes[2])
-        }.getOrNull() ?: return
-
-        val medicamento = repository.buscarPorId(medicamentoId) ?: return
-
-        // Confirma que o horário ainda pertence ao medicamento.
-        if (horario !in medicamento.horarios) return
-
-        // Confirma que a frequência inclui a data do alarme.
-        if (!medicamento.frequencia.ocorreEm(data)) return
-
-        // Não mostra notificações para doses futuras ou já vencidas.
-        val agora = LocalDateTime.now()
-        val momentoDose = data.atTime(horario)
-        if (momentoDose.isAfter(agora)) return
-
-        // A consulta do repositório retorna as doses registradas.
-        val doseRegistrada = repository.obterDosesRegistradas()
-            .firstOrNull { it.chave == chave }
-
-        if (doseRegistrada?.tomadaEm != null) {
+        val dose = obterDosePendente(chave)
+        if (dose == null) {
             Notificacoes.cancelarDose(context, chave)
-            atualizar(context)
-            return
+        } else {
+            Notificacoes.mostrarDose(context, dose)
         }
-
-        val dose = Dose(
-            medicamentoId = medicamento.id,
-            nome = medicamento.nome,
-            dosagem = medicamento.dosagem,
-            cor = medicamento.cor,
-            data = data,
-            horario = horario
-        )
-
-        Notificacoes.mostrarDose(context, dose)
-
-        // Agenda novamente as próximas doses.
         atualizar(context)
     }
 }

@@ -11,7 +11,7 @@ import kotlinx.coroutines.withTimeout
 
 class LembreteReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action != AgendadorLembretes.ACTION_LEMBRETE) return
+        if (intent.action !in setOf(AgendadorLembretes.ACTION_LEMBRETE, AgendadorLembretes.ACTION_ADIADO)) return
         val resultado = goAsync()
         val app = context.applicationContext as MedHoraApplication
         app.applicationScope.launch {

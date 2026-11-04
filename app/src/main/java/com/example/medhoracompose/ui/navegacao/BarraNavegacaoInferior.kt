@@ -10,6 +10,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.medhoracompose.R
 
 private val VerdeMedHora = Color(0xFF059669)
@@ -28,7 +29,7 @@ fun BarraNavegacaoInferior(
     onDestinoSelecionado: (DestinoInferior) -> Unit
 ) {
     NavigationBar(
-        containerColor = Color.White
+        containerColor = Color(0xFFE8F5F1)
     ) {
         NavigationBarItem(
             selected = destinoAtual == DestinoInferior.INICIO,
@@ -37,16 +38,16 @@ fun BarraNavegacaoInferior(
                 androidx.compose.material3.Icon(
                     painter = painterResource(R.drawable.ic_home),
                     contentDescription = "Início",
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(28.dp)
                 )
             },
-            label = { Text("Início") },
+            label = { Text(fontSize = 10.sp, text = "Início") },
             colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = VerdeMedHora,
+                selectedIconColor = Color(0xFF064E3B),
                 selectedTextColor = VerdeMedHora,
-                indicatorColor = Color(0xFFE6F6EF),
-                unselectedIconColor = Color.Gray,
-                unselectedTextColor = Color.Gray
+                indicatorColor = Color(0xFFD1FAE5),
+                unselectedIconColor = Color(0xFF064E3B),
+                unselectedTextColor = Color(0xFF71838A)
             )
         )
 
@@ -57,16 +58,16 @@ fun BarraNavegacaoInferior(
                 androidx.compose.material3.Icon(
                     painter = painterResource(R.drawable.ic_clock),
                     contentDescription = "Histórico",
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(28.dp)
                 )
             },
-            label = { Text("Histórico") },
+            label = { Text(fontSize = 10.sp, text = "Histórico") },
             colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = VerdeMedHora,
+                selectedIconColor = Color(0xFF064E3B),
                 selectedTextColor = VerdeMedHora,
-                indicatorColor = Color(0xFFE6F6EF),
-                unselectedIconColor = Color.Gray,
-                unselectedTextColor = Color.Gray
+                indicatorColor = Color(0xFFD1FAE5),
+                unselectedIconColor = Color(0xFF064E3B),
+                unselectedTextColor = Color(0xFF71838A)
             )
         )
 
@@ -77,16 +78,17 @@ fun BarraNavegacaoInferior(
                 androidx.compose.material3.Icon(
                     painter = painterResource(R.drawable.ic_add_circle),
                     contentDescription = "Adicionar",
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(32.dp),
+                    tint = Color.Unspecified
                 )
             },
-            label = { Text("Adicionar") },
+            label = { Text(fontSize = 10.sp, text = "Adicionar") },
             colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = VerdeMedHora,
+                selectedIconColor = Color(0xFF064E3B),
                 selectedTextColor = VerdeMedHora,
-                indicatorColor = Color(0xFFE6F6EF),
-                unselectedIconColor = Color.Gray,
-                unselectedTextColor = Color.Gray
+                indicatorColor = Color(0xFFD1FAE5),
+                unselectedIconColor = Color(0xFF064E3B),
+                unselectedTextColor = Color(0xFF71838A)
             )
         )
 
@@ -97,16 +99,16 @@ fun BarraNavegacaoInferior(
                 androidx.compose.material3.Icon(
                     painter = painterResource(R.drawable.ic_list),
                     contentDescription = "Medicamentos",
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(28.dp)
                 )
             },
-            label = { Text("Medicamentos") },
+            label = { Text(fontSize = 10.sp, text = "Medicamentos", maxLines = 1, softWrap = false) },
             colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = VerdeMedHora,
+                selectedIconColor = Color(0xFF064E3B),
                 selectedTextColor = VerdeMedHora,
-                indicatorColor = Color(0xFFE6F6EF),
-                unselectedIconColor = Color.Gray,
-                unselectedTextColor = Color.Gray
+                indicatorColor = Color(0xFFD1FAE5),
+                unselectedIconColor = Color(0xFF064E3B),
+                unselectedTextColor = Color(0xFF71838A)
             )
         )
 
@@ -117,16 +119,16 @@ fun BarraNavegacaoInferior(
                 androidx.compose.material3.Icon(
                     painter = painterResource(R.drawable.ic_settings),
                     contentDescription = "Configurações",
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(28.dp)
                 )
             },
-            label = { Text("Config.") },
+            label = { Text(fontSize = 10.sp, text = "Ajustes") },
             colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = VerdeMedHora,
+                selectedIconColor = Color(0xFF064E3B),
                 selectedTextColor = VerdeMedHora,
-                indicatorColor = Color(0xFFE6F6EF),
-                unselectedIconColor = Color.Gray,
-                unselectedTextColor = Color.Gray
+                indicatorColor = Color(0xFFD1FAE5),
+                unselectedIconColor = Color(0xFF064E3B),
+                unselectedTextColor = Color(0xFF71838A)
             )
         )
     }

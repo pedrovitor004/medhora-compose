@@ -46,7 +46,7 @@ class MedicamentoRepository(private val dao: MedHoraDao, scope: CoroutineScope) 
     }
 
     suspend fun marcarDoseTomada(dose: Dose, momento: LocalDateTime = LocalDateTime.now()) =
-        dao.registrarDose(dose.paraEntidade(momento))
+        dao.registrarDoseSeAusente(dose.paraEntidade(momento))
 
     suspend fun desmarcarDose(dose: Dose) =
         dao.desmarcarDose(dose.medicamentoId, dose.data, dose.horario)

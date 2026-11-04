@@ -139,20 +139,7 @@ fun ConfiguracoesScreen(
         snackbarHost = { SnackbarHost(snackbar) },
         containerColor = FundoConfiguracoes,
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "Configurações",
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextoConfiguracoes
-                    )
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = FundoConfiguracoes,
-                    titleContentColor = TextoConfiguracoes
-                )
-            )
+            com.example.medhoracompose.ui.common.MedHoraToolbar("Configurações")
         }
     ) { paddingValues ->
         Column(
@@ -176,9 +163,9 @@ fun ConfiguracoesScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Lembretes",
+                            text = "Lembretes de medicamentos",
                             modifier = Modifier.weight(1f),
-                            fontSize = 15.sp,
+                            fontSize = 15.sp, letterSpacing = 0.15.sp,
                             color = TextoConfiguracoes
                         )
 
@@ -196,8 +183,8 @@ fun ConfiguracoesScreen(
                     }
 
                     Text(
-                        text = "Ative os lembretes para receber avisos nos horários dos seus medicamentos.",
-                        fontSize = 12.sp,
+                        text = "Lembretes com nome, dose e horário do medicamento",
+                        fontSize = 12.sp, letterSpacing = 0.4.sp,
                         color = TextoSecundarioConfiguracoes
                     )
 
@@ -218,24 +205,24 @@ fun ConfiguracoesScreen(
                         )
 
                         Text(
-                            text = "Som",
+                            text = "Som das notificações",
                             modifier = Modifier
                                 .weight(1f)
                                 .padding(horizontal = 12.dp),
-                            fontSize = 14.sp,
+                            fontSize = 14.sp, letterSpacing = 0.25.sp,
                             color = TextoConfiguracoes
                         )
 
                         Text(
                             text = somSelecionado,
-                            fontSize = 12.sp,
+                            fontSize = 12.sp, letterSpacing = 0.4.sp,
                             color = TextoSecundarioConfiguracoes
                         )
                     }
 
                     Text(
                         text = "Escolha o som dos lembretes.",
-                        fontSize = 12.sp,
+                        fontSize = 12.sp, letterSpacing = 0.4.sp,
                         color = TextoSecundarioConfiguracoes
                     )
                 }
@@ -253,7 +240,7 @@ fun ConfiguracoesScreen(
             Text(
                 text = "A disponibilidade dos lembretes depende das permissões de notificação do Android.",
                 modifier = Modifier.padding(top = 8.dp),
-                fontSize = 12.sp,
+                fontSize = 12.sp, letterSpacing = 0.4.sp,
                 color = TextoSecundarioConfiguracoes
             )
 
@@ -267,7 +254,7 @@ fun ConfiguracoesScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp)
+                        .height(88.dp)
                         .padding(horizontal = 18.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -283,13 +270,13 @@ fun ConfiguracoesScreen(
                         modifier = Modifier
                             .weight(1f)
                             .padding(horizontal = 12.dp),
-                        fontSize = 14.sp,
+                        fontSize = 14.sp, letterSpacing = 0.25.sp,
                         color = TextoConfiguracoes
                     )
 
                     Text(
                         text = "Claro",
-                        fontSize = 12.sp,
+                        fontSize = 12.sp, letterSpacing = 0.4.sp,
                         color = TextoSecundarioConfiguracoes
                     )
                 }
@@ -306,17 +293,15 @@ fun ConfiguracoesScreen(
                     modifier = Modifier.padding(18.dp)
                 ) {
                     LinhaInformacaoConfiguracoes(
-                        icone = R.drawable.ic_settings,
-                        titulo = "Versão",
-                        valor = "1.0"
+                        icone = R.drawable.ic_info,
+                        titulo = "Versão do aplicativo",
+                        valor = "1.0.0"
                     )
-
-                    Spacer(modifier = Modifier.height(8.dp))
 
                     LinhaInformacaoConfiguracoes(
                         icone = R.drawable.ic_list,
                         titulo = "Desenvolvido por",
-                        valor = "Equipe MedHora"
+                        valor = "MedHora"
                     )
                 }
             }
@@ -324,14 +309,14 @@ fun ConfiguracoesScreen(
             Text(
                 text = "Os lembretes dependem das permissões de notificação e das configurações de alarmes do Android.",
                 modifier = Modifier.padding(top = 20.dp),
-                fontSize = 12.sp,
+                fontSize = 12.sp, letterSpacing = 0.4.sp,
                 color = TextoSecundarioConfiguracoes
             )
 
             Text(
                 text = "As informações dos medicamentos devem ser mantidas atualizadas para ajudar no acompanhamento dos horários.",
                 modifier = Modifier.padding(top = 12.dp, bottom = 8.dp),
-                fontSize = 12.sp,
+                fontSize = 12.sp, letterSpacing = 0.4.sp,
                 color = TextoSecundarioConfiguracoes
             )
         }
@@ -416,7 +401,7 @@ fun ConfiguracoesScreen(
 private fun TituloSecaoConfiguracoes(texto: String) {
     Text(
         text = texto,
-        fontSize = 16.sp,
+        fontSize = 15.sp, letterSpacing = 0.15.sp,
         fontWeight = FontWeight.Bold,
         color = TextoConfiguracoes
     )
@@ -436,10 +421,7 @@ private fun CardConfiguracoes(
         elevation = CardDefaults.cardElevation(
             defaultElevation = 1.dp
         ),
-        border = androidx.compose.foundation.BorderStroke(
-            1.dp,
-            BordaConfiguracoes
-        )
+        border = null
     ) {
         conteudo()
     }
@@ -495,13 +477,13 @@ private fun LinhaInformacaoConfiguracoes(
             modifier = Modifier
                 .weight(1f)
                 .padding(horizontal = 12.dp),
-            fontSize = 14.sp,
+            fontSize = 14.sp, letterSpacing = 0.25.sp,
             color = TextoConfiguracoes
         )
 
         Text(
             text = valor,
-            fontSize = 12.sp,
+            fontSize = 12.sp, letterSpacing = 0.4.sp,
             color = TextoSecundarioConfiguracoes
         )
     }

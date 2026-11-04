@@ -28,6 +28,9 @@ abstract class MedHoraDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     abstract suspend fun registrarDose(dose: DoseEntity)
 
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    abstract suspend fun registrarDoseSeAusente(dose: DoseEntity)
+
     @Query("DELETE FROM doses_tomadas WHERE medicamentoId = :id AND data = :data AND horario = :horario")
     abstract suspend fun desmarcarDose(id: Long, data: java.time.LocalDate, horario: java.time.LocalTime)
 
