@@ -10,6 +10,11 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 
+/**
+ * Cada instância representa uma linha da tabela medicamentos.
+ * O modelo usado pelas telas continua sendo Medicamento; esta classe descreve
+ * a estrutura persistida. As conversões abaixo fazem a ligação entre os dois.
+ */
 @Entity(tableName = "medicamentos")
 data class MedicamentoEntity(
     @PrimaryKey val id: Long,
@@ -28,8 +33,10 @@ fun Medicamento.paraEntidade() = MedicamentoEntity(
     id, nome, dosagem, horarios, frequencia, observacoes, cor, criadoEm
 )
 
-// Mantém uma cópia dos dados da dose para preservar o histórico mesmo após
-// editar ou excluir o medicamento. Por isso não há exclusão em cascata.
+// Guarda apenas doses tomadas, com um retrato do nome, dosagem e cor naquele momento.
+// A combinação medicamentoId + data + horario identifica uma ocorrência única.
+// Não há chave estrangeira nem exclusão em cascata: apagar o cadastro do medicamento
+// não deve apagar os registros anteriores do histórico.
 @Entity(tableName = "doses_tomadas", primaryKeys = ["medicamentoId", "data", "horario"])
 data class DoseEntity(
     val medicamentoId: Long,

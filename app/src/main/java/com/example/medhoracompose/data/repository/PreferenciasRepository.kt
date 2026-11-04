@@ -14,13 +14,19 @@ import kotlinx.coroutines.flow.stateIn
 // Um único DataStore por arquivo em todo o processo.
 private val Context.preferenciasDataStore by preferencesDataStore(name = "preferencias_medhora")
 
+// Configurações pequenas usam DataStore Preferences, separado das tabelas do Room.
+// Estes valores também são os padrões quando o arquivo ainda não possui as chaves.
 data class Preferencias(
     val lembretes: Boolean = false,
     val notificacoes: Boolean = true,
     val somAtivado: Boolean = true
 )
 
-/** Acesso às chaves, separado para permitir testar a reabertura do arquivo. */
+/**
+ * Traduz as chaves do arquivo DataStore para o objeto Preferencias.
+ * store.data observa o arquivo; store.edit grava uma alteração transacional.
+ * Foi separado do object abaixo para que os testes possam usar arquivos temporários.
+ */
 class ArmazenamentoPreferencias(private val store: DataStore<Preferences>) {
     private val lembretes = booleanPreferencesKey("lembretes_ativados")
     private val notificacoes = booleanPreferencesKey("notificacoes_ativadas")
@@ -51,6 +57,8 @@ class ArmazenamentoPreferencias(private val store: DataStore<Preferences>) {
     }
 }
 
+// Expõe as preferências atuais como StateFlow e centraliza as operações de escrita.
+// null na primeira emissão significa que a leitura inicial ainda não terminou.
 object PreferenciasRepository {
     private lateinit var armazenamento: ArmazenamentoPreferencias
     private lateinit var instancia: kotlinx.coroutines.flow.StateFlow<Preferencias?>

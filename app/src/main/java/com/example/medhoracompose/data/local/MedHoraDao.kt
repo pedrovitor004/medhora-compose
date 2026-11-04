@@ -8,6 +8,12 @@ import androidx.room.Transaction
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
+/**
+ * Contrato de acesso ao banco: declaramos as operações e o Room gera sua implementação
+ * durante a compilação. As telas não precisam escrever SQL ou abrir conexões.
+ * Flow representa consultas observáveis; suspend permite aguardar as escritas sem
+ * bloquear a interface. O Room cuida da execução assíncrona dessas operações.
+ */
 @Dao
 abstract class MedHoraDao {
     @Query("SELECT * FROM medicamentos ORDER BY id")
@@ -28,6 +34,8 @@ abstract class MedHoraDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     abstract suspend fun registrarDose(dose: DoseEntity)
 
+    // IGNORE preserva o primeiro registro se a mesma dose for confirmada duas vezes.
+    // A chave composta da Entity é quem define o que conta como a mesma dose.
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     abstract suspend fun registrarDoseSeAusente(dose: DoseEntity)
 
@@ -40,6 +48,7 @@ abstract class MedHoraDao {
     @Query("DELETE FROM doses_tomadas")
     protected abstract suspend fun limparDoses()
 
+    // As duas exclusões são uma única transação: ambas acontecem ou nenhuma fica salva.
     @Transaction
     open suspend fun limpar() {
         limparDoses()

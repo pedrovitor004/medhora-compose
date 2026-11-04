@@ -32,11 +32,11 @@ Em `data/local/Conversores.kt`, `@TypeConverter` transforma datas, horas e lista
 Em `data/local/MedHoraDao.kt`:
 
 - `@Query`: lê ou exclui dados usando SQL.
-- `@Insert`: cadastra medicamento e registra dose tomada.
+- `@Insert`: cadastra medicamento e registra dose tomada. No fluxo atual, registrarDoseSeAusente usa IGNORE para preservar a primeira confirmação quando a mesma chave chegar novamente; registrarDose, com REPLACE, permite substituir um registro.
 - `@Update`: atualiza o medicamento existente.
 - `@Transaction`: limpa as duas tabelas em uma única operação atômica.
 - `Flow`: emite as listas novamente quando o banco muda.
-- `suspend`: permite que as operações de disco aconteçam sem bloquear a interface.
+- `suspend`: permite aguardar operações assíncronas. A palavra-chave sozinha não cria uma thread; nestes DAOs, o Room executa o acesso ao banco fora da thread da interface.
 
 ## 5. Database: o banco de dados
 
@@ -61,7 +61,7 @@ Em `PreferenciasRepository.kt`, `preferencesDataStore` garante uma instância co
 - `store.edit` grava as mudanças de forma transacional.
 - Quando ainda não há valores, os padrões são lembretes desligados e notificações e som habilitados.
 
-A preferência salva não substitui a permissão do sistema: o Android também precisa permitir notificações. Não é necessário usar Proto DataStore para este trabalho, pois o requisito pede Preferences.
+A preferência salva não substitui a permissão do sistema: o Android também precisa permitir notificações. DataStore é um complemento para configurações pequenas; a implementação exigida com Room está nos medicamentos e nas doses tomadas.
 
 ## 8. Inicialização e alarmes
 
@@ -93,10 +93,9 @@ O arquivo do DataStore não é uma tabela SQL e não aparece no Database Inspect
 
 ```powershell
 .\gradlew.bat :app:assembleDebug :app:testDebugUnitTest :app:lintDebug
-.\gradlew.bat :app:connectedDebugAndroidTest
 ```
 
-O segundo comando requer um emulador ou dispositivo conectado. `PersistenciaLocalTest` utiliza arquivos temporários exclusivos, fecha e reabre o banco e recria o DataStore. Verifica CRUD, histórico, duplicação de doses, desmarcação, limpeza e persistência das preferências. Os testes não limpam os dados do usuário.
+PersistenciaLocalTest usa arquivos temporários: fecha e reabre o banco e recria o DataStore para verificar CRUD, histórico, desmarcação e preferências. As operações desse teste são isoladas, mas o executor de instalação é outra etapa: nesta configuração, connectedDebugAndroidTest removeu o aplicativo durante a limpeza. Execute testes instrumentados em um emulador de testes ou use instalação e instrumentação diretas sem desinstalar o aplicativo. Não use o executor conectado sobre cadastros importantes sem backup.
 
 ## Roteiro para a apresentação de 15 minutos
 

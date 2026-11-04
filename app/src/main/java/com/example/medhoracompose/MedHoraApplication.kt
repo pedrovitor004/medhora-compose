@@ -18,6 +18,11 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 
+/**
+ * Inicialização comum a toda a aplicação, antes da Activity ou de um receiver usar dados.
+ * O escopo acompanha o processo: trocar de tela não interrompe a observação do banco.
+ * Ao iniciar um novo processo, os objetos são recriados e os arquivos são lidos de novo.
+ */
 class MedHoraApplication : Application() {
     var erroCarregamento by mutableStateOf<String?>(null)
         private set
@@ -35,6 +40,9 @@ class MedHoraApplication : Application() {
         PreferenciasRepository.inicializar(this, applicationScope)
 
         applicationScope.launch {
+            // filterNotNull aguarda a primeira leitura real de cada armazenamento.
+            // Assim não agendamos alarmes usando listas vazias provisórias nem valores
+            // de preferência que ainda não foram recuperados do arquivo.
             combine(
                 MedHoraRepositorioCompartilhado.repository.dados.filterNotNull(),
                 PreferenciasRepository.dados.filterNotNull()

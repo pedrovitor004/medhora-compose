@@ -60,11 +60,16 @@ fun MedHoraNavHost(
     val rotaInicial = rememberSaveable { if (medicamentoNotificacaoId != null) Routes.HOME else Routes.SPLASH }
     val navController = rememberNavController()
     val repository = MedHoraRepositorioCompartilhado.repository
+    // Converte as emissões do repositório em estado do Compose.
+    // Quando o Room emitir novos dados, as telas que dependem deles serão recompostas.
     val dados by repository.dados.collectAsState()
     val scope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
     var salvando by remember { mutableStateOf(false) }
 
+    // As telas enviam eventos; a escrita acontece em uma corrotina.
+    // O callback de cadastro só volta à tela anterior depois que o DAO concluir.
+    // Se ocorrer erro, mostramos uma mensagem em vez de fingir que o dado foi salvo.
     fun gravar(operacao: suspend () -> Unit) {
         if (salvando) return
         salvando = true
